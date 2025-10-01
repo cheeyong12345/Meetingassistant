@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Code Subagents Tester</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+        }
+
+        .sidebar {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .sidebar h2 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .agent-list {
+            list-style: none;
+        }
+
+        .agent-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f5f7fa;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .agent-item:hover {
+            background: #e8ecf4;
+            transform: translateX(5px);
+        }
+
+        .agent-item.active {
+            background: #667eea;
+            color: white;
+            border-color: #5568d3;
+        }
+
+        .agent-item .name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .agent-item .category {
+            font-size: 0.85em;
+            opacity: 0.7;
+        }
+
+        .workspace {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .workspace h2 {
+            font-size: 1.8em;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .workspace .description {
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .test-section {
+            margin-top: 30px;
+        }
+
+        .test-section h3 {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .input-group textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            border: 2px solid #e1e8ed;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+
+        .input-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button {
+            background: #667eea;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .output {
+            margin-top: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .output.show {
+            display: block;
+        }
+
+        .output h4 {
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        .output pre {
+            background: white;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .usage-examples {
+            margin-top: 25px;
+            padding: 20px;
+            background: #e8f4f8;
+            border-radius: 6px;
+        }
+
+        .usage-examples h4 {
+            margin-bottom: 12px;
+            color: #0288d1;
+        }
+
+        .usage-examples ul {
+            margin-left: 20px;
+        }
+
+        .usage-examples li {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 10px;
+            background: #e8ecf4;
+            border-radius: 12px;
+            font-size: 0.75em;
+            margin-right: 6px;
+            margin-top: 6px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Claude Code Subagents Tester</h1>
+            <p>Test and explore AI agents for your Meeting Assistant project</p>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <h2>Available Agents</h2>
+                <ul class="agent-list" id="agentList">
+                    <li class="agent-item active" data-agent="python-pro">
+                        <div class="name">Python Pro</div>
+                        <div class="category">Language Specialist</div>
+                    </li>
+                    <li class="agent-item" data-agent="ai-engineer">
+                        <div class="name">AI Engineer</div>
+                        <div class="category">AI/ML</div>
+                    </li>
+                    <li class="agent-item" data-agent="ml-engineer">
+                        <div class="name">ML Engineer</div>
+                        <div class="category">AI/ML</div>
+                    </li>
+                    <li class="agent-item" data-agent="code-reviewer">
+                        <div class="name">Code Reviewer</div>
+                        <div class="category">Quality</div>
+                    </li>
+                    <li class="agent-item" data-agent="debugger">
+                        <div class="name">Debugger</div>
+                        <div class="category">Troubleshooting</div>
+                    </li>
+                    <li class="agent-item" data-agent="performance-engineer">
+                        <div class="name">Performance Engineer</div>
+                        <div class="category">Optimization</div>
+                    </li>
+                    <li class="agent-item" data-agent="test-automator">
+                        <div class="name">Test Automator</div>
+                        <div class="category">Testing</div>
+                    </li>
+                    <li class="agent-item" data-agent="api-designer">
+                        <div class="name">API Designer</div>
+                        <div class="category">Architecture</div>
+                    </li>
+                    <li class="agent-item" data-agent="frontend-developer">
+                        <div class="name">Frontend Developer</div>
+                        <div class="category">UI Development</div>
+                    </li>
+                    <li class="agent-item" data-agent="ui-designer">
+                        <div class="name">UI Designer</div>
+                        <div class="category">Visual Design</div>
+                    </li>
+                    <li class="agent-item" data-agent="ui-ux-designer">
+                        <div class="name">UI/UX Designer</div>
+                        <div class="category">UX Strategy</div>
+                    </li>
+                    <li class="agent-item" data-agent="ui-visual-validator">
+                        <div class="name">UI Visual Validator</div>
+                        <div class="category">Quality Assurance</div>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="workspace">
+                <h2 id="agentName">Python Pro</h2>
+                <p class="description" id="agentDescription">
+                    Expert in Python ecosystem with deep knowledge of modern Python features, async programming, and framework expertise.
+                </p>
+
+                <div id="agentTags">
+                    <span class="tag">Python 3.10+</span>
+                    <span class="tag">AsyncIO</span>
+                    <span class="tag">FastAPI</span>
+                    <span class="tag">Type Hints</span>
+                </div>
+
+                <div class="test-section">
+                    <h3>Test Agent</h3>
+                    <div class="input-group">
+                        <label for="taskInput">Enter your task or question:</label>
+                        <textarea id="taskInput" placeholder="E.g., Review my audio processing code for performance issues..."></textarea>
+                    </div>
+                    <button class="button" onclick="testAgent()">Run Agent Test</button>
+                </div>
+
+                <div class="output" id="output">
+                    <h4>Agent Response:</h4>
+                    <pre id="outputContent"></pre>
+                </div>
+
+                <div class="usage-examples">
+                    <h4>💡 Example Use Cases:</h4>
+                    <ul id="useCases">
+                        <li>Optimize Whisper integration for faster transcription</li>
+                        <li>Review async audio streaming implementation</li>
+                        <li>Add type hints to the codebase</li>
+                        <li>Improve error handling in STT engines</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const agents = {
+            'python-pro': {
+                name: 'Python Pro',
+                description: 'Expert in Python ecosystem with deep knowledge of modern Python features, async programming, and framework expertise.',
+                tags: ['Python 3.10+', 'AsyncIO', 'FastAPI', 'Type Hints'],
+                useCases: [
+                    'Optimize Whisper integration for faster transcription',
+                    'Review async audio streaming implementation',
+                    'Add type hints to the codebase',
+                    'Improve error handling in STT engines'
+                ]
+            },
+            'ai-engineer': {
+                name: 'AI Engineer',
+                description: 'Specialist in LLM applications, RAG systems, and AI model integration with focus on production deployment.',
+                tags: ['LLM', 'RAG', 'Model Integration', 'Prompt Engineering'],
+                useCases: [
+                    'Improve meeting summarization prompts',
+                    'Add RAG for context-aware summaries',
+                    'Optimize Qwen model performance',
+                    'Build custom AI pipelines for meetings'
+                ]
+            },
+            'ml-engineer': {
+                name: 'ML Engineer',
+                description: 'Expert in ML pipelines, model serving, and feature engineering with production ML focus.',
+                tags: ['ML Pipelines', 'Model Serving', 'Feature Engineering', 'Optimization'],
+                useCases: [
+                    'Optimize Whisper model loading',
+                    'Build audio feature extraction pipeline',
+                    'Add model quantization for SBC',
+                    'Implement NPU acceleration for RK3588'
+                ]
+            },
+            'code-reviewer': {
+                name: 'Code Reviewer',
+                description: 'Automated code quality guardian ensuring best practices, performance, and maintainability.',
+                tags: ['Code Quality', 'Best Practices', 'Security', 'Performance'],
+                useCases: [
+                    'Review meeting.py for code quality',
+                    'Check for security vulnerabilities',
+                    'Validate error handling patterns',
+                    'Ensure coding standards compliance'
+                ]
+            },
+            'debugger': {
+                name: 'Debugger',
+                description: 'Specialized in troubleshooting and fixing bugs across the stack.',
+                tags: ['Bug Fixing', 'Root Cause Analysis', 'Troubleshooting'],
+                useCases: [
+                    'Debug audio recording issues',
+                    'Fix model loading errors',
+                    'Troubleshoot NPU acceleration',
+                    'Resolve memory leaks'
+                ]
+            },
+            'performance-engineer': {
+                name: 'Performance Engineer',
+                description: 'Expert in profiling, optimization, and performance tuning for maximum efficiency.',
+                tags: ['Profiling', 'Optimization', 'Benchmarking', 'Scalability'],
+                useCases: [
+                    'Optimize real-time transcription speed',
+                    'Reduce memory usage for SBC',
+                    'Profile STT engine performance',
+                    'Improve concurrent processing'
+                ]
+            },
+            'test-automator': {
+                name: 'Test Automator',
+                description: 'Comprehensive testing specialist for unit tests, integration tests, and test automation.',
+                tags: ['Unit Testing', 'Integration Tests', 'pytest', 'Test Coverage'],
+                useCases: [
+                    'Write tests for STT engines',
+                    'Add integration tests for web app',
+                    'Create test fixtures for audio files',
+                    'Improve test coverage to 80%+'
+                ]
+            },
+            'api-designer': {
+                name: 'API Designer',
+                description: 'REST and GraphQL API architect with focus on scalable, well-documented APIs.',
+                tags: ['REST API', 'FastAPI', 'OpenAPI', 'API Design'],
+                useCases: [
+                    'Design REST API for meeting operations',
+                    'Add OpenAPI documentation',
+                    'Create WebSocket API for real-time',
+                    'Improve API error responses'
+                ]
+            },
+            'frontend-developer': {
+                name: 'Frontend Developer',
+                description: 'Expert UI engineer specializing in React 18+, Vue 3+, and modern web applications with focus on performance and accessibility.',
+                tags: ['React', 'Vue', 'TypeScript', 'Accessibility', 'Performance'],
+                useCases: [
+                    'Build responsive dashboard for meetings',
+                    'Create real-time transcription UI with WebSockets',
+                    'Optimize web app performance and bundle size',
+                    'Implement accessible audio player controls'
+                ]
+            },
+            'ui-designer': {
+                name: 'UI Designer',
+                description: 'Visual design expert specializing in beautiful, functional interfaces with design systems and interaction patterns.',
+                tags: ['Design Systems', 'Figma', 'Visual Design', 'Interaction Design'],
+                useCases: [
+                    'Design comprehensive UI for meeting assistant',
+                    'Create design system with reusable components',
+                    'Design intuitive audio recording interface',
+                    'Build accessible color palette and typography'
+                ]
+            },
+            'ui-ux-designer': {
+                name: 'UI/UX Designer',
+                description: 'Comprehensive UX specialist focusing on user research, accessibility-first design, and cross-platform consistency.',
+                tags: ['User Research', 'Design Tokens', 'WCAG 2.1', 'Design Systems'],
+                useCases: [
+                    'Conduct user research for meeting workflows',
+                    'Design accessible meeting transcription interface',
+                    'Create design token system for theming',
+                    'Build user journey maps for meeting flows'
+                ]
+            },
+            'ui-visual-validator': {
+                name: 'UI Visual Validator',
+                description: 'Visual testing expert specializing in UI validation, design system compliance, and accessibility verification.',
+                tags: ['Visual Testing', 'Accessibility Testing', 'Regression Testing', 'Quality Assurance'],
+                useCases: [
+                    'Validate UI changes meet design specifications',
+                    'Check accessibility compliance (WCAG 2.1)',
+                    'Verify responsive design across breakpoints',
+                    'Test visual consistency across browsers'
+                ]
+            }
+        };
+
+        // Agent selection
+        document.querySelectorAll('.agent-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.agent-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+
+                const agentId = item.dataset.agent;
+                const agent = agents[agentId];
+
+                document.getElementById('agentName').textContent = agent.name;
+                document.getElementById('agentDescription').textContent = agent.description;
+
+                // Update tags
+                const tagsHtml = agent.tags.map(tag => `<span class="tag">${tag}</span>`).join('');
+                document.getElementById('agentTags').innerHTML = tagsHtml;
+
+                // Update use cases
+                const useCasesHtml = agent.useCases.map(uc => `<li>${uc}</li>`).join('');
+                document.getElementById('useCases').innerHTML = useCasesHtml;
+
+                // Hide output
+                document.getElementById('output').classList.remove('show');
+            });
+        });
+
+        function testAgent() {
+            const task = document.getElementById('taskInput').value;
+            const activeAgent = document.querySelector('.agent-item.active').dataset.agent;
+            const agent = agents[activeAgent];
+
+            if (!task.trim()) {
+                alert('Please enter a task or question first!');
+                return;
+            }
+
+            // Simulate agent response
+            const output = document.getElementById('output');
+            const outputContent = document.getElementById('outputContent');
+
+            outputContent.textContent = `🤖 ${agent.name} Agent Response:\n\n`;
+            outputContent.textContent += `Task: ${task}\n\n`;
+            outputContent.textContent += `This is a UI demo. To actually use the agent:\n\n`;
+            outputContent.textContent += `1. Open Claude Code CLI\n`;
+            outputContent.textContent += `2. Use: @agent-${activeAgent}\n`;
+            outputContent.textContent += `3. Or let Claude auto-select based on context\n\n`;
+            outputContent.textContent += `Example command:\n`;
+            outputContent.textContent += `"Ask the ${activeAgent} agent to: ${task}"`;
+
+            output.classList.add('show');
+        }
+    </script>
+</body>
+</html>

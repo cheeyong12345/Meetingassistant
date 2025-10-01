@@ -1,0 +1,799 @@
+/* ============================================
+   MEETING ASSISTANT - ANIMATIONS LIBRARY
+   Beautiful micro-interactions and transitions
+   ============================================ */
+
+/* ============================================
+   1. RECORDING ANIMATIONS
+   ============================================ */
+
+/* Pulsing Recording Dot */
+@keyframes pulse-recording {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.7;
+  }
+}
+
+.pulse-recording {
+  animation: pulse-recording 1.5s ease-in-out infinite;
+}
+
+/* Recording Waveform Animation */
+@keyframes waveform {
+  0%, 100% {
+    height: 8px;
+    opacity: 0.3;
+  }
+  50% {
+    height: 32px;
+    opacity: 1;
+  }
+}
+
+.waveform-bar {
+  animation: waveform 1.2s ease-in-out infinite;
+}
+
+/* Staggered waveform bars */
+.waveform-bar:nth-child(1) { animation-delay: 0s; }
+.waveform-bar:nth-child(2) { animation-delay: 0.1s; }
+.waveform-bar:nth-child(3) { animation-delay: 0.2s; }
+.waveform-bar:nth-child(4) { animation-delay: 0.3s; }
+.waveform-bar:nth-child(5) { animation-delay: 0.4s; }
+.waveform-bar:nth-child(6) { animation-delay: 0.5s; }
+
+/* Ripple Effect for Recording Button */
+@keyframes ripple {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+.recording-ripple::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid currentColor;
+  animation: ripple 2s infinite;
+}
+
+/* ============================================
+   2. LOADING & PROGRESS ANIMATIONS
+   ============================================ */
+
+/* Spinner */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Pulse Loading */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Bounce */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-25%);
+  }
+}
+
+.bounce {
+  animation: bounce 1s infinite;
+}
+
+/* Progress Shimmer */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+/* Skeleton Loading */
+@keyframes skeleton-pulse {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-gray-200) 0%,
+    var(--color-gray-300) 50%,
+    var(--color-gray-200) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+/* Dots Loading */
+@keyframes dots-pulse {
+  0%, 80%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.loading-dots span {
+  animation: dots-pulse 1.4s infinite;
+}
+
+.loading-dots span:nth-child(1) { animation-delay: 0s; }
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+/* ============================================
+   3. ENTRANCE ANIMATIONS
+   ============================================ */
+
+/* Fade In */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Fade In Up */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.4s ease-out;
+}
+
+/* Fade In Down */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-down {
+  animation: fadeInDown 0.4s ease-out;
+}
+
+/* Fade In Left */
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.fade-in-left {
+  animation: fadeInLeft 0.4s ease-out;
+}
+
+/* Fade In Right */
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.fade-in-right {
+  animation: fadeInRight 0.4s ease-out;
+}
+
+/* Scale In */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.scale-in {
+  animation: scaleIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Slide In Up */
+@keyframes slideInUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.slide-in-up {
+  animation: slideInUp 0.4s ease-out;
+}
+
+/* Slide In Down */
+@keyframes slideInDown {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.slide-in-down {
+  animation: slideInDown 0.4s ease-out;
+}
+
+/* Zoom In */
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.zoom-in {
+  animation: zoomIn 0.3s ease-out;
+}
+
+/* ============================================
+   4. EXIT ANIMATIONS
+   ============================================ */
+
+/* Fade Out */
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.fade-out {
+  animation: fadeOut 0.3s ease-in;
+}
+
+/* Fade Out Up */
+@keyframes fadeOutUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+.fade-out-up {
+  animation: fadeOutUp 0.3s ease-in;
+}
+
+/* Scale Out */
+@keyframes scaleOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+.scale-out {
+  animation: scaleOut 0.3s ease-in;
+}
+
+/* ============================================
+   5. ATTENTION SEEKERS
+   ============================================ */
+
+/* Shake */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-10px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(10px);
+  }
+}
+
+.shake {
+  animation: shake 0.5s;
+}
+
+/* Wobble */
+@keyframes wobble {
+  0%, 100% {
+    transform: translateX(0) rotate(0);
+  }
+  15% {
+    transform: translateX(-25%) rotate(-5deg);
+  }
+  30% {
+    transform: translateX(20%) rotate(3deg);
+  }
+  45% {
+    transform: translateX(-15%) rotate(-3deg);
+  }
+  60% {
+    transform: translateX(10%) rotate(2deg);
+  }
+  75% {
+    transform: translateX(-5%) rotate(-1deg);
+  }
+}
+
+.wobble {
+  animation: wobble 0.8s;
+}
+
+/* Jello */
+@keyframes jello {
+  0%, 100% {
+    transform: skewX(0) skewY(0);
+  }
+  30% {
+    transform: skewX(25deg) skewY(25deg);
+  }
+  40% {
+    transform: skewX(-15deg) skewY(-15deg);
+  }
+  50% {
+    transform: skewX(15deg) skewY(15deg);
+  }
+  65% {
+    transform: skewX(-5deg) skewY(-5deg);
+  }
+  75% {
+    transform: skewX(5deg) skewY(5deg);
+  }
+}
+
+.jello {
+  animation: jello 0.8s;
+}
+
+/* Heartbeat */
+@keyframes heartbeat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  14% {
+    transform: scale(1.3);
+  }
+  28% {
+    transform: scale(1);
+  }
+  42% {
+    transform: scale(1.3);
+  }
+  70% {
+    transform: scale(1);
+  }
+}
+
+.heartbeat {
+  animation: heartbeat 1.3s ease-in-out infinite;
+}
+
+/* Flash */
+@keyframes flash {
+  0%, 50%, 100% {
+    opacity: 1;
+  }
+  25%, 75% {
+    opacity: 0;
+  }
+}
+
+.flash {
+  animation: flash 1s;
+}
+
+/* ============================================
+   6. TYPING EFFECT
+   ============================================ */
+
+@keyframes typing {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes blink-caret {
+  from, to {
+    border-color: transparent;
+  }
+  50% {
+    border-color: var(--color-primary-600);
+  }
+}
+
+.typing-effect {
+  overflow: hidden;
+  border-right: 2px solid var(--color-primary-600);
+  white-space: nowrap;
+  animation:
+    typing 3.5s steps(40, end),
+    blink-caret 0.75s step-end infinite;
+}
+
+/* ============================================
+   7. FLOATING & HOVER EFFECTS
+   ============================================ */
+
+/* Float */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Glow Pulse */
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(139, 92, 246, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.6);
+  }
+}
+
+.glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* Gradient Animation */
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.gradient-shift {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+/* ============================================
+   8. SUCCESS/ERROR ANIMATIONS
+   ============================================ */
+
+/* Success Checkmark */
+@keyframes draw-checkmark {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.checkmark-path {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: draw-checkmark 0.6s ease-out forwards;
+}
+
+/* Success Ripple */
+@keyframes success-ripple {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.success-ripple::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid var(--color-success);
+  animation: success-ripple 1s ease-out infinite;
+}
+
+/* Error Shake */
+@keyframes error-shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-10px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(10px);
+  }
+}
+
+.error-shake {
+  animation: error-shake 0.5s;
+}
+
+/* ============================================
+   9. STAGGERED ANIMATIONS
+   ============================================ */
+
+.stagger-fade-in > *:nth-child(1) {
+  animation: fadeInUp 0.4s ease-out 0.1s both;
+}
+
+.stagger-fade-in > *:nth-child(2) {
+  animation: fadeInUp 0.4s ease-out 0.2s both;
+}
+
+.stagger-fade-in > *:nth-child(3) {
+  animation: fadeInUp 0.4s ease-out 0.3s both;
+}
+
+.stagger-fade-in > *:nth-child(4) {
+  animation: fadeInUp 0.4s ease-out 0.4s both;
+}
+
+.stagger-fade-in > *:nth-child(5) {
+  animation: fadeInUp 0.4s ease-out 0.5s both;
+}
+
+.stagger-fade-in > *:nth-child(6) {
+  animation: fadeInUp 0.4s ease-out 0.6s both;
+}
+
+/* ============================================
+   10. INTERACTIVE HOVER ANIMATIONS
+   ============================================ */
+
+/* Lift on Hover */
+.lift-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.lift-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Grow on Hover */
+.grow-hover {
+  transition: transform 0.2s ease;
+}
+
+.grow-hover:hover {
+  transform: scale(1.05);
+}
+
+/* Rotate on Hover */
+.rotate-hover {
+  transition: transform 0.3s ease;
+}
+
+.rotate-hover:hover {
+  transform: rotate(5deg);
+}
+
+/* Shine Effect on Hover */
+.shine-hover {
+  position: relative;
+  overflow: hidden;
+}
+
+.shine-hover::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.shine-hover:hover::before {
+  left: 100%;
+}
+
+/* Underline Expand */
+.underline-expand {
+  position: relative;
+}
+
+.underline-expand::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: currentColor;
+  transition: width 0.3s ease, left 0.3s ease;
+}
+
+.underline-expand:hover::after {
+  width: 100%;
+  left: 0;
+}
+
+/* ============================================
+   11. SMOOTH TRANSITIONS
+   ============================================ */
+
+.transition-all {
+  transition: all 0.2s ease;
+}
+
+.transition-fast {
+  transition: all 0.15s ease;
+}
+
+.transition-slow {
+  transition: all 0.3s ease;
+}
+
+.transition-colors {
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.transition-transform {
+  transition: transform 0.2s ease;
+}
+
+.transition-opacity {
+  transition: opacity 0.2s ease;
+}
+
+/* ============================================
+   12. DELAY UTILITIES
+   ============================================ */
+
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-500 { animation-delay: 0.5s; }
+.delay-700 { animation-delay: 0.7s; }
+.delay-1000 { animation-delay: 1s; }
+
+/* ============================================
+   13. DURATION UTILITIES
+   ============================================ */
+
+.duration-fast { animation-duration: 0.15s; }
+.duration-normal { animation-duration: 0.3s; }
+.duration-slow { animation-duration: 0.5s; }
+.duration-slower { animation-duration: 1s; }
+
+/* ============================================
+   14. REDUCED MOTION SUPPORT
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .pulse,
+  .spin,
+  .bounce,
+  .float,
+  .heartbeat,
+  .glow-pulse,
+  .gradient-shift {
+    animation: none !important;
+  }
+}

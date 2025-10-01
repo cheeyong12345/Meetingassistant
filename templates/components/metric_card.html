@@ -1,0 +1,80 @@
+<!-- Metric Card Component -->
+<!-- Usage: {% include 'components/metric_card.html' with label="Duration" value="12:34" icon="clock" %} -->
+
+<div class="metric-card">
+  {% if icon %}
+  <div class="metric-icon">
+    {% if icon == "clock" %}⏱️{% endif %}
+    {% if icon == "users" %}👥{% endif %}
+    {% if icon == "words" %}📝{% endif %}
+    {% if icon == "check" %}✓{% endif %}
+  </div>
+  {% endif %}
+
+  <div class="metric-label">{{ label|default:"Metric" }}</div>
+  <div class="metric-value">{{ value|default:"0" }}</div>
+
+  {% if change %}
+  <div class="metric-change {{ 'positive' if change > 0 else 'negative' }}">
+    {{ '+' if change > 0 else '' }}{{ change }}%
+  </div>
+  {% endif %}
+</div>
+
+<style>
+.metric-card {
+  background: white;
+  padding: 24px;
+  border-radius: 16px;
+  border: 2px solid var(--color-gray-200, #e5e7eb);
+  transition: all 0.2s ease;
+}
+
+.metric-card:hover {
+  border-color: var(--color-primary, #2563eb);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.metric-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(37, 99, 235, 0.1);
+  border-radius: 12px;
+  font-size: 24px;
+  margin-bottom: 16px;
+}
+
+.metric-label {
+  font-size: 12px;
+  color: var(--color-gray-600, #4b5563);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+.metric-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--color-gray-900, #111827);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.metric-change {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.metric-change.positive {
+  color: var(--color-success, #10b981);
+}
+
+.metric-change.negative {
+  color: var(--color-error, #ef4444);
+}
+</style>

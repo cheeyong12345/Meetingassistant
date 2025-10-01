@@ -1,0 +1,74 @@
+<!-- Action Item Component -->
+<!-- Usage: Display actionable tasks from meeting summaries -->
+
+<div class="action-item {{ 'completed' if completed else '' }}">
+  <input
+    type="checkbox"
+    class="action-item-checkbox"
+    {{ 'checked' if completed else '' }}
+    id="action-{{ id|default:'0' }}"
+  >
+  <label for="action-{{ id|default:'0' }}" class="action-item-text">
+    {{ text|default:"Action item description" }}
+  </label>
+</div>
+
+<style>
+.action-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid var(--color-gray-200, #e5e7eb);
+  transition: background 0.15s ease;
+}
+
+.action-item:last-child {
+  border-bottom: none;
+}
+
+.action-item:hover {
+  background: var(--color-gray-50, #f9fafb);
+}
+
+.action-item-checkbox {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  cursor: pointer;
+  appearance: none;
+  border: 2px solid var(--color-gray-300, #d1d5db);
+  border-radius: 4px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.action-item-checkbox:checked {
+  background: linear-gradient(135deg, var(--color-primary, #2563eb) 0%, var(--color-primary-light, #3b82f6) 100%);
+  border-color: var(--color-primary, #2563eb);
+}
+
+.action-item-checkbox:checked::after {
+  content: '✓';
+  position: absolute;
+  color: white;
+  font-size: 14px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.action-item-text {
+  flex: 1;
+  color: var(--color-gray-900, #111827);
+  line-height: 1.6;
+  cursor: pointer;
+  user-select: none;
+}
+
+.action-item.completed .action-item-text {
+  text-decoration: line-through;
+  color: var(--color-gray-500, #6b7280);
+}
+</style>

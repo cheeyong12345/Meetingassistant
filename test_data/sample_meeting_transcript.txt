@@ -1,0 +1,40 @@
+Daily Standup Meeting - Engineering Team
+Date: September 29, 2025
+Participants: Sarah (PM), Mike (Senior Dev), Jenny (QA), Alex (DevOps)
+
+Sarah: Good morning everyone. Let's start with our daily standup. Mike, can you go first?
+
+Mike: Sure. Yesterday I completed the user authentication module and started working on the database migration scripts. Today I'm planning to finish the migration and begin testing the new API endpoints. No blockers currently.
+
+Jenny: Thanks Mike. Yesterday I finished testing the checkout flow and found three bugs which I've already logged in JIRA. Today I'll be testing the new authentication module that Mike completed. I'm blocked on getting access to the staging environment - Alex, can you help with that?
+
+Alex: Absolutely, I'll get you staging access right after this meeting. Yesterday I deployed the new monitoring system and fixed the CI/CD pipeline issues. Today I'm working on the database backup automation and will help Jenny with staging access. No blockers on my end.
+
+Sarah: Great updates everyone. Just a reminder that we have the sprint demo on Friday, so let's make sure all features are tested and ready. Mike, will the API endpoints be ready for the demo?
+
+Mike: Yes, I should have them completed and tested by Wednesday, which gives us a buffer for any issues.
+
+Sarah: Perfect. Jenny, any concerns about having everything tested in time?
+
+Jenny: As long as I get staging access today, I should be able to complete all testing by Thursday morning. I might need help from Mike if I find any critical issues.
+
+Mike: No problem, just ping me if you need anything.
+
+Sarah: Excellent. Alex, the demo environment should be stable, right?
+
+Alex: Yes, the demo environment is solid now. I've also set up automatic backups, so we're covered if anything goes wrong.
+
+Sarah: Great. Any other topics for today?
+
+Jenny: Just one quick thing - the test data in staging is outdated. Can we refresh it?
+
+Alex: I'll take care of that this afternoon.
+
+Sarah: Perfect. That wraps up our standup. Have a productive day everyone!
+
+Action Items:
+- Alex: Provide Jenny with staging environment access
+- Alex: Refresh test data in staging environment
+- Mike: Complete API endpoints by Wednesday
+- Jenny: Complete authentication module testing
+- Team: Prepare for Friday sprint demo

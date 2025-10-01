@@ -1,0 +1,80 @@
+<!-- Recording Indicator Component -->
+<!-- Usage: Include this component when recording is active -->
+
+<div class="recording-indicator" role="status" aria-live="polite">
+  <div class="recording-indicator-dot"></div>
+  <span>Recording</span>
+
+  <!-- Optional: Waveform visualization -->
+  <div class="waveform-container" style="display: inline-flex; margin-left: 12px;">
+    <div class="waveform-bar"></div>
+    <div class="waveform-bar"></div>
+    <div class="waveform-bar"></div>
+    <div class="waveform-bar"></div>
+    <div class="waveform-bar"></div>
+  </div>
+</div>
+
+<style>
+.recording-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 2px solid var(--color-danger, #ef4444);
+  border-radius: 9999px;
+  color: var(--color-danger, #ef4444);
+  font-weight: 500;
+  animation: pulse-recording 1.5s infinite;
+}
+
+@keyframes pulse-recording {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+  }
+}
+
+.recording-indicator-dot {
+  width: 12px;
+  height: 12px;
+  background: var(--color-danger, #ef4444);
+  border-radius: 50%;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.waveform-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 24px;
+}
+
+.waveform-bar {
+  width: 3px;
+  background: currentColor;
+  border-radius: 9999px;
+  animation: waveform 1.2s ease-in-out infinite;
+}
+
+.waveform-bar:nth-child(1) { animation-delay: 0s; }
+.waveform-bar:nth-child(2) { animation-delay: 0.1s; }
+.waveform-bar:nth-child(3) { animation-delay: 0.2s; }
+.waveform-bar:nth-child(4) { animation-delay: 0.3s; }
+.waveform-bar:nth-child(5) { animation-delay: 0.4s; }
+
+@keyframes waveform {
+  0%, 100% { height: 4px; }
+  50% { height: 20px; }
+}
+</style>

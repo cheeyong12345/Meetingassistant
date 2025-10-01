@@ -1,0 +1,42 @@
+<!-- Transcript Segment Component -->
+<!-- Usage: Display individual transcript segments with timestamps -->
+
+<div class="transcript-segment fade-in-up">
+  <div class="transcript-timestamp">{{ timestamp|default:"00:00" }}</div>
+  <div class="transcript-text">{{ text|default:"Transcript text will appear here..." }}</div>
+</div>
+
+<style>
+.transcript-segment {
+  padding: 16px;
+  margin-bottom: 8px;
+  background: white;
+  border-radius: 12px;
+  border-left: 3px solid var(--color-primary, #2563eb);
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.transcript-timestamp {
+  font-size: 12px;
+  color: var(--color-gray-500, #6b7280);
+  margin-bottom: 4px;
+  font-family: monospace;
+}
+
+.transcript-text {
+  color: var(--color-gray-900, #111827);
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+</style>
