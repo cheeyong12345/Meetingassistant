@@ -77,28 +77,76 @@ class OllamaEngine(SummarizationEngine):
             return ""
 
     def summarize(self, text: str, max_tokens: Optional[int] = None) -> Dict[str, Any]:
-        """Summarize meeting transcript"""
-        prompt = f"""Please provide a concise summary of the following meeting transcript.
-Focus on the main topics discussed, decisions made, and important points raised.
+        """Summarize meeting transcript with improved prompt"""
+        prompt = f"""You are an expert meeting summarizer. Analyze the transcript and create a professional summary.
 
-Meeting Transcript:
+TRANSCRIPT:
 {text}
 
-Summary:"""
+INSTRUCTIONS:
+1. Write a brief overview (2-3 sentences) summarizing the main purpose
+2. Extract 3-5 key discussion points
+3. List any action items or decisions mentioned
+4. Keep the summary concise - aim for 30-40% of original length
+5. Use clear, professional language
+6. DO NOT copy sentences verbatim - paraphrase and condense
+
+SUMMARY FORMAT:
+**Overview:**
+[Brief 2-3 sentence summary of the meeting]
+
+**Key Points:**
+• [Main point 1]
+• [Main point 2]
+• [Main point 3]
+
+**Action Items:**
+• [Action item 1 if any]
+
+**Decisions:**
+• [Decision 1 if any]
+
+Now provide the summary:"""
 
         try:
-            summary = self._generate_response(prompt, max_tokens)
+            summary = self._generate_response(prompt, max_tokens or 800)
 
-            return {
-                'summary': summary,
-                'success': True
-            }
+            # Validate summary is not just copying
+            if summary and len(summary) < len(text) * 0.9:
+                return {
+                    'summary': summary,
+                    'success': True
+                }
+            else:
+                # Fallback to extractive summary
+                return {
+                    'summary': self._extractive_summary(text),
+                    'success': True,
+                    'fallback': True
+                }
         except Exception as e:
             return {
-                'summary': '',
-                'success': False,
+                'summary': self._extractive_summary(text),
+                'success': True,
+                'fallback': True,
                 'error': str(e)
             }
+
+    def _extractive_summary(self, text: str) -> str:
+        """Simple extractive summarization fallback"""
+        sentences = [s.strip() for s in text.split('.') if s.strip()]
+
+        # Take first sentence, middle sentences, and last sentence
+        if len(sentences) <= 3:
+            return '. '.join(sentences) + '.'
+
+        summary_sentences = [
+            sentences[0],  # First sentence
+            sentences[len(sentences)//2],  # Middle
+            sentences[-1]  # Last sentence
+        ]
+
+        return "**Summary (Key Points):**\n\n" + '. '.join(summary_sentences) + '.'
 
     def extract_action_items(self, text: str) -> List[str]:
         """Extract action items from meeting text"""

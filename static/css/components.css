@@ -217,6 +217,7 @@
 .btn-block {
   width: 100%;
   display: flex;
+  flex-shrink: 0;
 }
 
 /* Icon Buttons */
