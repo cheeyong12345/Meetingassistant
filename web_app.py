@@ -86,7 +86,7 @@ manager = ConnectionManager()
 async def home(request: Request):
     """Main dashboard"""
     status = meeting_assistant.get_engine_status() if meeting_assistant else {}
-    return templates.TemplateResponse("index.html", {
+    return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "status": status
     })
@@ -108,6 +108,61 @@ async def get_status():
             "summarization": meeting_assistant.get_available_summarization_engines()
         }
     }
+
+@app.get("/api/audio-devices")
+async def get_audio_devices():
+    """Get available audio input devices"""
+    try:
+        import pyaudio
+        p = pyaudio.PyAudio()
+        devices = []
+        current_device = None
+
+        for i in range(p.get_device_count()):
+            info = p.get_device_info_by_index(i)
+            if info['maxInputChannels'] > 0:
+                devices.append({
+                    'index': i,
+                    'name': info['name'],
+                    'channels': info['maxInputChannels'],
+                    'sample_rate': int(info['defaultSampleRate'])
+                })
+
+        # Get current device from config
+        if meeting_assistant and hasattr(meeting_assistant, 'audio_recorder'):
+            device_index = meeting_assistant.audio_recorder.device_index
+            if device_index is not None:
+                device_info = p.get_device_info_by_index(device_index)
+                current_device = device_info['name']
+
+        p.terminate()
+
+        return {
+            "success": True,
+            "devices": devices,
+            "current_device": current_device
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "devices": []
+        }
+
+@app.post("/api/set-audio-device")
+async def set_audio_device(request: Request):
+    """Set audio input device"""
+    try:
+        data = await request.json()
+        device_index = data.get('device_index')
+
+        if meeting_assistant and hasattr(meeting_assistant, 'audio_recorder'):
+            meeting_assistant.audio_recorder.device_index = device_index
+            return {"success": True, "device_index": device_index}
+        else:
+            return {"success": False, "error": "Audio recorder not available"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 @app.post("/api/engines/stt")
 async def switch_stt_engine(engine: str = Form(...)):

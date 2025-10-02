@@ -4,6 +4,87 @@
    ============================================ */
 
 /* ============================================
+   0. ACCORDION COMPONENTS
+   ============================================ */
+
+.accordion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.accordion-item {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: box-shadow var(--transition-base);
+}
+
+.accordion-item:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.accordion-item.active {
+  box-shadow: var(--shadow-lg);
+}
+
+.accordion-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg);
+  background: white;
+  border: none;
+  cursor: pointer;
+  transition: background-color var(--transition-base);
+  font-family: var(--font-display);
+}
+
+.accordion-header:hover {
+  background-color: var(--color-gray-50);
+}
+
+.accordion-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-gray-900);
+}
+
+.accordion-title svg {
+  color: var(--color-primary);
+}
+
+.accordion-icon {
+  transition: transform var(--transition-base);
+  color: var(--color-gray-500);
+}
+
+.accordion-item.active .accordion-icon {
+  transform: rotate(180deg);
+}
+
+.accordion-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+.accordion-content.active {
+  max-height: 2000px;
+  transition: max-height 0.5s ease-in;
+}
+
+.accordion-body {
+  padding: var(--spacing-lg);
+  border-top: 1px solid var(--color-gray-200);
+}
+
+/* ============================================
    1. BUTTON COMPONENTS
    ============================================ */
 
