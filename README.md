@@ -35,19 +35,19 @@ AI-powered meeting transcription and summarization tool with multi-model support
 
 Choose the installation that best fits your needs:
 
-#### 1. Full Installation (Recommended for SBC/Local AI)
+#### 1. Full Installation (Recommended for SBC/Local)
 Complete setup with local models for offline operation:
 ```bash
-python3 install_sbc.py
+python3 scripts/install_sbc.py
 ```
 - **Size**: 2-7GB (depending on model choices)
-- **Features**: Offline STT + AI summarization
+- **Features**: Offline STT + summarization
 - **Best for**: RK3588, Raspberry Pi, offline use
 
 #### 2. Lightweight Installation
 Minimal setup using API-based services:
 ```bash
-python3 install_lightweight.py
+python3 scripts/install_lightweight.py
 ```
 - **Size**: ~50MB
 - **Features**: API-based STT + summarization
@@ -198,27 +198,35 @@ The RK3588's 6 TOPS NPU provides excellent performance:
 
 ```
 Meetingassistant/
-├── cli.py                 # Command-line interface
-├── web_app.py            # Web interface
+├── README.md             # This file
 ├── config.yaml           # Configuration file
 ├── requirements.txt      # Python dependencies
-├── install_sbc.py        # SBC installation script
-├── install_lightweight.py # Lightweight installation script
-├── run_cli.py            # CLI launcher script
-├── run_web.py            # Web launcher script
-├── test.py               # Test runner script
-├── test_setup.py         # Setup test script
-├── src/
+│
+├── src/                  # Source code
 │   ├── config.py         # Configuration management
-│   ├── meeting.py        # Main meeting assistant class
+│   ├── meeting.py        # Main meeting assistant
 │   ├── audio/            # Audio recording
 │   ├── stt/              # Speech-to-text engines
-│   └── summarization/    # AI summarization engines
-├── templates/            # Web interface templates
-├── static/               # Web assets (CSS, JavaScript)
-├── tests/                # Test scripts and utilities
-├── data/                 # Meeting data and recordings
-└── models/              # Downloaded AI models
+│   └── summarization/    # Summarization engines
+│
+├── scripts/              # Utility scripts
+│   ├── install_sbc.py           # Full installation
+│   ├── install_lightweight.py   # Lightweight installation
+│   └── start_demo.sh            # Quick start script
+│
+├── docs/                 # Documentation
+│   ├── guides/           # User guides
+│   ├── reviews/          # Technical reviews
+│   └── design/           # Design documentation
+│
+├── templates/            # Web templates
+├── static/               # Web assets (CSS, JS)
+│   ├── css/             # Stylesheets
+│   └── js/              # JavaScript
+│
+├── tests/                # Test files
+├── data/                 # Meeting recordings
+└── models/               # AI models
 ```
 
 ## Development
