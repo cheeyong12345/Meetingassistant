@@ -123,7 +123,6 @@
 }
 
 .btn:active {
-  transform: scale(0.98);
   filter: brightness(0.95);
 }
 
@@ -294,7 +293,8 @@
   min-height: 120px;
 }
 
-.form-hint {
+.form-hint,
+.form-help {
   display: block;
   margin-top: var(--space-2);
   font-size: var(--text-sm);
@@ -448,6 +448,52 @@
   transform: translate(-50%, -50%);
 }
 
+/* Form Switch (for auto-scroll toggle) */
+.form-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.form-switch input[type="checkbox"] {
+  appearance: none;
+  width: 44px;
+  height: 24px;
+  background: var(--color-gray-300);
+  border-radius: var(--radius-full);
+  position: relative;
+  cursor: pointer;
+  transition: background var(--transition-base);
+}
+
+.form-switch input[type="checkbox"]:checked {
+  background: var(--color-primary-600);
+}
+
+.form-switch input[type="checkbox"]::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 50%;
+  top: 3px;
+  left: 3px;
+  transition: transform var(--transition-base);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-switch input[type="checkbox"]:checked::before {
+  transform: translateX(20px);
+}
+
+.form-switch label {
+  font-size: var(--text-sm);
+  color: var(--color-gray-700);
+  cursor: pointer;
+}
+
 /* ============================================
    3. BADGE COMPONENTS
    ============================================ */
@@ -468,6 +514,11 @@
 .badge-primary {
   background: var(--color-primary-100);
   color: var(--color-primary-700);
+}
+
+.badge-secondary {
+  background: var(--color-gray-200);
+  color: var(--color-gray-700);
 }
 
 .badge-success {

@@ -16,11 +16,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
 
-    <!-- Design System Styles -->
-    <link rel="stylesheet" href="/static/css/design-system.css">
-    <link rel="stylesheet" href="/static/css/components.css">
-    <link rel="stylesheet" href="/static/css/animations.css">
-    <link rel="stylesheet" href="/static/css/style.css">
+    <!-- Design System Styles with Cache Busting -->
+    <link rel="stylesheet" href="/static/css/design-system.css?v=2.0.1">
+    <link rel="stylesheet" href="/static/css/components.css?v=2.0.1">
+    <link rel="stylesheet" href="/static/css/animations.css?v=2.0.1">
+    <link rel="stylesheet" href="/static/css/style.css?v=2.0.1">
 
     {% block extra_css %}{% endblock %}
 </head>
@@ -93,10 +93,10 @@
         </div>
     </footer>
 
-    <!-- Scripts -->
-    <script src="/static/js/ui-enhancements.js"></script>
-    <script src="/static/js/app.js"></script>
-    <script src="/static/js/demo-features.js"></script>
+    <!-- Scripts with Cache Busting -->
+    <script src="/static/js/ui-enhancements.js?v=2.0.1"></script>
+    <script src="/static/js/app.js?v=2.0.1"></script>
+    <script src="/static/js/demo-features.js?v=2.0.1"></script>
 
     {% block extra_js %}{% endblock %}
 
