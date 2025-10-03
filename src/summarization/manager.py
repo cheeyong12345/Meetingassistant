@@ -17,23 +17,10 @@ from src.exceptions import (
     ActionItemExtractionError
 )
 
-# Import engines conditionally (may not be available on RISC-V)
-try:
-    from src.summarization.qwen_engine import QwenEngine
-    QWEN_AVAILABLE = True
-except ImportError as e:
-    QwenEngine = None
-    QWEN_AVAILABLE = False
-
-try:
-    from src.summarization.ollama_engine import OllamaEngine
-    OLLAMA_AVAILABLE = True
-except ImportError:
-    OllamaEngine = None
-    OLLAMA_AVAILABLE = False
-
 # Initialize logger
 logger = get_logger(__name__)
+
+# Don't import engines at module level - import when needed to avoid RISC-V errors
 
 
 class SummarizationManager:
@@ -84,9 +71,10 @@ class SummarizationManager:
         logger.info("Registering summarization engines")
         engines_config = self.config.get('engines', {})
 
-        # Register Qwen engine (if available)
-        if 'qwen3' in engines_config and QWEN_AVAILABLE and QwenEngine is not None:
+        # Register Qwen engine (import only when needed to avoid RISC-V errors)
+        if 'qwen3' in engines_config:
             try:
+                from src.summarization.qwen_engine import QwenEngine
                 qwen_config = engines_config['qwen3']
                 model_name = qwen_config.get('model_name', 'Qwen/Qwen2.5-3B-Instruct')
                 # Extract model version from the full name
@@ -97,29 +85,30 @@ class SummarizationManager:
                 engine_name = f"qwen-{model_short}"
                 self.engines[engine_name] = QwenEngine(qwen_config)
                 logger.info(f"Registered summarization engine: {engine_name}")
+            except ImportError as e:
+                logger.warning(f"Qwen engine not available (transformers import failed): {e}")
             except Exception as e:
                 logger.error(
                     f"Failed to register Qwen engine: {e}",
                     exc_info=True
                 )
-        elif 'qwen3' in engines_config and not QWEN_AVAILABLE:
-            logger.warning("Qwen engine requested but not available (transformers not installed)")
 
-        # Register Ollama engine (if available)
-        if 'ollama' in engines_config and OLLAMA_AVAILABLE and OllamaEngine is not None:
+        # Register Ollama engine (import only when needed)
+        if 'ollama' in engines_config:
             try:
+                from src.summarization.ollama_engine import OllamaEngine
                 ollama_config = engines_config['ollama']
                 model_name = ollama_config.get('model_name', 'qwen2.5:1.5b')
                 engine_name = f"ollama-{model_name}"
                 self.engines[engine_name] = OllamaEngine(ollama_config)
                 logger.info(f"Registered summarization engine: {engine_name}")
+            except ImportError as e:
+                logger.warning(f"Ollama engine not available: {e}")
             except Exception as e:
                 logger.error(
                     f"Failed to register Ollama engine: {e}",
                     exc_info=True
                 )
-        elif 'ollama' in engines_config and not OLLAMA_AVAILABLE:
-            logger.warning("Ollama engine requested but not available")
 
         # Verify at least one engine was registered
         if not self.engines:

@@ -73,6 +73,7 @@ jinja2
 pyyaml
 websockets
 python-multipart
+click
 EOF
 
     # Try with pip
@@ -82,7 +83,7 @@ EOF
         echo "⚠️  Pip installation had issues, trying one by one..."
 
         # Install one by one, ignore errors
-        for pkg in fastapi uvicorn jinja2 pyyaml websockets python-multipart; do
+        for pkg in fastapi uvicorn jinja2 pyyaml websockets python-multipart click; do
             echo "  → Installing $pkg..."
             pip3 install --break-system-packages $pkg 2>/dev/null || echo "    ⚠️  $pkg failed (may already be installed)"
         done
@@ -171,6 +172,13 @@ try:
 except Exception as e:
     print(f"  ❌ pydantic: {e}")
     errors.append("pydantic")
+
+try:
+    import click
+    print("  ✅ click (for CLI)")
+except Exception as e:
+    print(f"  ❌ click: {e}")
+    errors.append("click")
 
 if errors:
     print(f"\n⚠️  Some imports failed: {', '.join(errors)}")
