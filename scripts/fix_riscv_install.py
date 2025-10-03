@@ -308,14 +308,36 @@ def install_other_packages():
 
     pip_path = get_pip_path()
 
-    packages = {
-        'onnxruntime': 'ONNX Runtime (for NPU acceleration)',
+    # Core packages that should work on RISC-V
+    core_packages = {
         'transformers': 'Hugging Face Transformers',
         'fastapi': 'FastAPI web framework',
-        'pyaudio': 'Audio processing'
+        'uvicorn': 'ASGI server',
+        'jinja2': 'Template engine',
+        'click': 'CLI framework',
+        'rich': 'Terminal formatting',
+        'pyyaml': 'YAML parser',
+        'requests': 'HTTP library'
     }
 
-    for package, description in packages.items():
+    # Audio packages
+    audio_packages = {
+        'pyaudio': 'Audio I/O',
+        'pydub': 'Audio manipulation',
+        'soundfile': 'Audio file I/O'
+    }
+
+    # Optional packages (may not have RISC-V wheels)
+    optional_packages = {
+        'onnxruntime': 'ONNX Runtime (for NPU acceleration)',
+        'accelerate': 'Hugging Face Accelerate',
+        'sentencepiece': 'Tokenizer',
+        'protobuf': 'Protocol Buffers'
+    }
+
+    # Install core packages
+    print_info("\nInstalling core packages...")
+    for package, description in core_packages.items():
         if check_python_package(package):
             mod = __import__(package)
             version = getattr(mod, '__version__', 'unknown')
@@ -327,7 +349,44 @@ def install_other_packages():
             if result.returncode == 0:
                 print_status(f"{package:20s} installed")
             else:
-                print_warning(f"{package:20s} installation failed (optional)")
+                print_error(f"{package:20s} installation FAILED")
+                return False
+
+    # Install audio packages
+    print_info("\nInstalling audio packages...")
+    for package, description in audio_packages.items():
+        if check_python_package(package):
+            mod = __import__(package)
+            version = getattr(mod, '__version__', 'unknown')
+            print_status(f"{package:20s} already installed ({version})")
+        else:
+            print_info(f"Installing {package} ({description})...")
+            result = run_command([pip_path, "install", package], check=False, timeout=600)
+
+            if result.returncode == 0:
+                print_status(f"{package:20s} installed")
+            else:
+                print_warning(f"{package:20s} installation failed (may work without it)")
+
+    # Install optional packages (don't fail if they don't work)
+    print_info("\nInstalling optional packages (RISC-V may not have pre-built wheels)...")
+    for package, description in optional_packages.items():
+        if check_python_package(package):
+            mod = __import__(package)
+            version = getattr(mod, '__version__', 'unknown')
+            print_status(f"{package:20s} already installed ({version})")
+        else:
+            print_info(f"Trying to install {package} ({description})...")
+            result = run_command([pip_path, "install", package], check=False, timeout=600)
+
+            if result.returncode == 0:
+                print_status(f"{package:20s} installed")
+            else:
+                print_warning(f"{package:20s} not available for RISC-V (will use alternatives)")
+
+                if package == 'onnxruntime':
+                    print_info("  → ONNX Runtime requires building from source on RISC-V")
+                    print_info("  → Application will work with PyTorch/Transformers instead")
 
     return True
 
@@ -337,10 +396,16 @@ def verify_installation():
     print_info("STEP 6: Verification")
     print_info("="*60)
 
-    critical_packages = ['numpy', 'onnxruntime', 'transformers', 'fastapi']
-    optional_packages = ['scipy', 'torch']
+    # Core packages needed for basic functionality
+    critical_packages = ['numpy', 'transformers', 'fastapi', 'uvicorn']
 
-    print_info("\nCritical packages:")
+    # Important but can work without
+    important_packages = ['scipy', 'onnxruntime', 'torch']
+
+    # Nice to have
+    optional_packages = ['accelerate', 'sentencepiece', 'pyaudio']
+
+    print_info("\nCore packages (required):")
     all_critical_ok = True
     for package in critical_packages:
         if check_python_package(package):
@@ -351,6 +416,17 @@ def verify_installation():
             print_error(f"  ✗ {package:20s} NOT INSTALLED")
             all_critical_ok = False
 
+    print_info("\nImportant packages (recommended):")
+    important_count = 0
+    for package in important_packages:
+        if check_python_package(package):
+            mod = __import__(package)
+            version = getattr(mod, '__version__', 'unknown')
+            print_status(f"  ✓ {package:20s} {version}")
+            important_count += 1
+        else:
+            print_warning(f"  - {package:20s} not installed")
+
     print_info("\nOptional packages:")
     for package in optional_packages:
         if check_python_package(package):
@@ -358,9 +434,21 @@ def verify_installation():
             version = getattr(mod, '__version__', 'unknown')
             print_status(f"  ✓ {package:20s} {version}")
         else:
-            print_warning(f"  - {package:20s} not installed (optional)")
+            print_warning(f"  - {package:20s} not installed")
 
-    return all_critical_ok
+    # Show recommendations
+    if not all_critical_ok:
+        print_error("\n❌ Some critical packages are missing!")
+        print_info("Installation incomplete - please fix errors above")
+        return False
+    elif important_count == 0:
+        print_warning("\n⚠️  No AI inference engines installed")
+        print_info("You'll need at least one of: scipy, onnxruntime, or torch")
+        print_info("For RISC-V, install PyTorch from source or use pre-trained models")
+        return False
+    else:
+        print_status(f"\n✅ Installation successful! ({important_count}/{len(important_packages)} AI engines available)")
+        return True
 
 def print_summary():
     """Print summary and next steps"""
@@ -368,21 +456,48 @@ def print_summary():
     print_info("INSTALLATION COMPLETE")
     print_info("="*60)
 
-    print_status("\n✅ RISC-V installation fix completed!")
+    print_status("\n✅ RISC-V installation completed!")
+
+    # Check what was installed
+    has_onnxruntime = check_python_package('onnxruntime')
+    has_torch = check_python_package('torch')
+    has_scipy = check_python_package('scipy')
+
+    print_info("\n📦 Installed Inference Engines:")
+    if has_scipy:
+        print_status("  ✓ SciPy - Scientific computing")
+    if has_torch:
+        print_status("  ✓ PyTorch - Deep learning framework")
+    if has_onnxruntime:
+        print_status("  ✓ ONNX Runtime - NPU acceleration")
+
+    if not has_onnxruntime and not has_torch:
+        print_warning("\n⚠️  ONNX Runtime and PyTorch not available on RISC-V")
+        print_info("This is normal - no pre-built wheels exist for RISC-V")
+        print_info("")
+        print_info("Your options:")
+        print_info("  1. Use Transformers with CPU inference (recommended)")
+        print_info("  2. Build PyTorch from source (6-12 hours)")
+        print_info("  3. Build ONNX Runtime from source (4-8 hours)")
 
     print_info("\n📋 Next Steps:")
-    print_info("  1. Continue with model installation:")
+    print_info("  1. Download AI models:")
     print_info("     python3 scripts/install_sbc.py --models-only")
     print_info("")
     print_info("  2. Test the installation:")
-    print_info("     python3 -c 'import numpy; print(\"NumPy:\", numpy.__version__)'")
-    print_info("     python3 -c 'import onnxruntime; print(\"ONNX:\", onnxruntime.__version__)'")
+    print_info("     python3 -c 'import numpy, transformers, fastapi'")
+    print_info("     python3 -c 'print(\"Core packages OK!\")'")
     print_info("")
     print_info("  3. Run the web app:")
+    print_info("     cd ~/Meetingassistant")
     print_info("     python3 web_app.py")
     print_info("")
     print_info("  4. Or run in debug mode:")
     print_info("     python3 debug/run_debug.py")
+
+    print_info("\n💡 For RISC-V NPU Acceleration:")
+    print_info("  - Install ENNP SDK from ESWIN Computing")
+    print_info("  - See: docs/RISCV_DEPLOYMENT.md")
 
     print_info("\n📚 Documentation:")
     print_info("  - RISCV_INSTALL_FIX.md - Troubleshooting guide")
