@@ -227,9 +227,21 @@ fi
 echo ""
 echo "Building Whisper.cpp for RISC-V Eswin 7700x..."
 
-# Detect RISC-V specific features
-RISCV_ARCH=$(gcc -march=native -Q --help=target | grep march | awk '{print $2}' | head -1)
-echo "Detected RISC-V architecture: $RISCV_ARCH"
+# Detect RISC-V ISA string (rv64gc, rv64imafc, etc.)
+# RISC-V doesn't support -march=native, we need to detect the ISA manually
+RISCV_ARCH=""
+if grep -q "rv64" /proc/cpuinfo 2>/dev/null; then
+    # Extract ISA from cpuinfo if available
+    RISCV_ARCH=$(grep "isa" /proc/cpuinfo | head -1 | awk '{print $NF}')
+elif command -v gcc &> /dev/null; then
+    # Try to get from gcc target
+    GCC_TARGET=$(gcc -dumpmachine)
+    if [[ "$GCC_TARGET" == *"riscv64"* ]]; then
+        RISCV_ARCH="rv64gc"  # Common baseline
+    fi
+fi
+
+echo "Detected RISC-V architecture: ${RISCV_ARCH:-default}"
 
 # Build with CMake (preferred for RISC-V)
 echo "Building with CMake..."
@@ -237,21 +249,37 @@ mkdir -p build
 cd build
 
 # Configure with RISC-V optimizations
-cmake .. \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DWHISPER_BUILD_TESTS=OFF \
-    -DWHISPER_BUILD_EXAMPLES=ON \
-    -DCMAKE_C_FLAGS="-march=native -O3" \
-    -DCMAKE_CXX_FLAGS="-march=native -O3"
+# Don't use -march=native on RISC-V, use detected ISA or default
+if [ -z "$RISCV_ARCH" ]; then
+    # No specific arch detected, use basic optimization
+    cmake .. \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DWHISPER_BUILD_TESTS=OFF \
+        -DWHISPER_BUILD_EXAMPLES=ON \
+        -DCMAKE_C_FLAGS="-O3" \
+        -DCMAKE_CXX_FLAGS="-O3"
+else
+    # Use detected RISC-V ISA
+    cmake .. \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DWHISPER_BUILD_TESTS=OFF \
+        -DWHISPER_BUILD_EXAMPLES=ON \
+        -DCMAKE_C_FLAGS="-march=${RISCV_ARCH} -O3" \
+        -DCMAKE_CXX_FLAGS="-march=${RISCV_ARCH} -O3"
+fi
 
 # Build with available cores
 make -j$(nproc) || {
     echo -e "${YELLOW}CMake build failed, trying Makefile...${NC}"
     cd "$WHISPER_DIR"
 
-    # Try traditional Makefile with RISC-V flags
+    # Try traditional Makefile with RISC-V flags (no -march=native)
     make clean
-    CFLAGS="-O3 -march=native" CXXFLAGS="-O3 -march=native" make -j$(nproc)
+    if [ -z "$RISCV_ARCH" ]; then
+        CFLAGS="-O3" CXXFLAGS="-O3" make -j$(nproc)
+    else
+        CFLAGS="-O3 -march=${RISCV_ARCH}" CXXFLAGS="-O3 -march=${RISCV_ARCH}" make -j$(nproc)
+    fi
 }
 
 # Check if binary exists

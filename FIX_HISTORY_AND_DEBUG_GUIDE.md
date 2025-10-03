@@ -59,9 +59,15 @@
 - **Test**: Verify that selected audio device is actually used for recording
 
 ### 3. Whisper.cpp Performance on RISC-V
-- **Platform**: RK3588 SBC
-- **Consider**: NPU acceleration options
+- **Platform**: Eswin 7700x RISC-V SBC
+- **Consider**: RISC-V specific optimizations (no NPU available)
 - **Test**: Check transcription speed and accuracy
+
+### 4. RISC-V Specific: `-march=native` Issue ✅ FIXED
+- **Issue**: RISC-V doesn't support `-march=native` compiler flag
+- **Error**: "ISA string must begin with rv32 or rv64"
+- **Solution**: Script now detects ISA from `/proc/cpuinfo` or uses `rv64gc` baseline
+- **Status**: Fixed in FIX_ESWIN_7700X_AUDIO_WHISPER.sh
 
 ## 🚫 What to AVOID
 
@@ -69,14 +75,19 @@
    - Keep it simple: just check returncode != 0
    - Don't try to parse deprecation warnings
 
-2. **DO NOT** modify git configuration
+2. **DO NOT** use `-march=native` on RISC-V devices
+   - RISC-V doesn't support this flag
+   - Use detected ISA (rv64gc, rv64imafc, etc.) or omit -march entirely
+   - Error: "ISA string must begin with rv32 or rv64"
+
+3. **DO NOT** modify git configuration
    - User's git config is set up correctly
    - Don't change user.name or user.email
 
-3. **DO NOT** create unnecessary documentation files unless requested
+4. **DO NOT** create unnecessary documentation files unless requested
    - This file is an exception as specifically requested
 
-4. **DO NOT** use complex error handling for the deprecated 'main' binary
+5. **DO NOT** use complex error handling for the deprecated 'main' binary
    - The simplified approach works better
 
 ## 📝 Debug Checklist for Next Session
