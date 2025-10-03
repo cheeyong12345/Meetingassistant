@@ -255,6 +255,73 @@ class WhisperCppEngine(STTEngine):
             logger.warning(f"Audio conversion failed: {e}, using original")
             return audio_path
 
+    def set_model_size(self, model_size: str) -> bool:
+        """
+        Change the model size dynamically.
+
+        Args:
+            model_size: New model size ('tiny', 'base', 'small', 'medium', 'large')
+
+        Returns:
+            True if model change successful, False otherwise
+        """
+        try:
+            # Update model size
+            old_size = self.model_size
+            self.model_size = model_size
+            self.model_path = self.whisper_cpp_dir / f"models/ggml-{self.model_size}.bin"
+
+            # Check if new model exists
+            if not self.model_path.exists():
+                logger.error(
+                    f"Model '{model_size}' not found at {self.model_path}\n"
+                    f"Download it with: cd ~/whisper.cpp && bash ./models/download-ggml-model.sh {model_size}"
+                )
+                # Revert to old model
+                self.model_size = old_size
+                self.model_path = self.whisper_cpp_dir / f"models/ggml-{old_size}.bin"
+                return False
+
+            logger.info(f"Successfully changed model from '{old_size}' to '{model_size}'")
+            logger.info(f"Model path: {self.model_path}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to change model size: {e}")
+            return False
+
+    def get_available_models(self) -> list[str]:
+        """
+        Get list of available whisper.cpp models.
+
+        Returns:
+            List of available model sizes
+        """
+        available = []
+        models_dir = self.whisper_cpp_dir / "models"
+
+        if not models_dir.exists():
+            return available
+
+        # Check for common model files
+        for model_size in ['tiny', 'tiny.en', 'base', 'base.en', 'small', 'small.en', 'medium', 'medium.en', 'large']:
+            model_file = models_dir / f"ggml-{model_size}.bin"
+            if model_file.exists():
+                available.append(model_size)
+
+        return available
+
+    def get_info(self) -> Dict[str, Any]:
+        """Get engine information including available models"""
+        info = super().get_info()
+        info.update({
+            'current_model': self.model_size,
+            'available_models': self.get_available_models(),
+            'model_path': str(self.model_path),
+            'binary_path': str(self.binary_path)
+        })
+        return info
+
     def cleanup(self):
         """Clean up resources"""
         self.is_initialized = False

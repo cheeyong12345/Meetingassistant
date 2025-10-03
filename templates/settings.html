@@ -43,6 +43,25 @@
                                 </span>
                             </small>
                         </div>
+
+                        <!-- Model Size Selector (for whisper.cpp) -->
+                        <div id="model-size-section" class="mt-3" style="display: none;">
+                            <hr>
+                            <h6>Whisper Model Size</h6>
+                            <form id="model-size-form">
+                                <div class="mb-3">
+                                    <select class="form-select" id="model-size-select" name="model_size">
+                                        <option value="">Loading models...</option>
+                                    </select>
+                                    <small class="text-muted">
+                                        Current: <strong id="current-model">-</strong>
+                                    </small>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-arrow-repeat"></i> Change Model
+                                </button>
+                            </form>
+                        </div>
                     </div>
 
                     <!-- Summarization Engine -->
@@ -302,6 +321,92 @@
             }
         } catch (error) {
             showAlert(`Error switching summarization engine: ${error.message}`, 'danger');
+        }
+    });
+
+    // Model Size form submission
+    document.getElementById('model-size-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(e.target);
+        const modelSize = formData.get('model_size');
+
+        if (!modelSize) {
+            showAlert('Please select a model size', 'warning');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/engines/stt/model', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showAlert(`Successfully changed to ${modelSize} model`, 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert(`Failed to change model: ${result.error || 'Unknown error'}`, 'danger');
+            }
+        } catch (error) {
+            showAlert(`Error changing model: ${error.message}`, 'danger');
+        }
+    });
+
+    // Load available models when whisper.cpp is active
+    async function loadAvailableModels() {
+        try {
+            const response = await fetch('/api/engines/stt/models');
+            const result = await response.json();
+
+            if (result.success && result.models && result.models.length > 0) {
+                const select = document.getElementById('model-size-select');
+                const currentModelSpan = document.getElementById('current-model');
+
+                // Clear existing options
+                select.innerHTML = '';
+
+                // Add model options
+                result.models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.textContent = model;
+                    if (model === result.current) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+
+                // Update current model display
+                currentModelSpan.textContent = result.current || '-';
+
+                // Show the model size section
+                document.getElementById('model-size-section').style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Failed to load available models:', error);
+        }
+    }
+
+    // Check if current engine is whisper.cpp and load models
+    function checkSTTEngine() {
+        const sttEngineName = '{{ status.stt.name or "" }}';
+        if (sttEngineName.includes('whispercpp')) {
+            loadAvailableModels();
+        }
+    }
+
+    // Load models on page load
+    checkSTTEngine();
+
+    // Also load models when STT engine changes
+    document.getElementById('stt-engine-select').addEventListener('change', function(e) {
+        if (e.target.value.includes('whispercpp')) {
+            setTimeout(loadAvailableModels, 500); // Small delay for engine to initialize
+        } else {
+            document.getElementById('model-size-section').style.display = 'none';
         }
     });
 

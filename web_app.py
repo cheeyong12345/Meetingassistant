@@ -182,6 +182,80 @@ async def switch_summarization_engine(engine: str = Form(...)):
     success = meeting_assistant.switch_summarization_engine(engine)
     return {"success": success, "engine": engine}
 
+@app.post("/api/engines/stt/model")
+async def change_stt_model(model_size: str = Form(...)):
+    """Change STT model size (for whisper.cpp)"""
+    if not meeting_assistant:
+        return {"success": False, "error": "Meeting assistant not initialized"}
+
+    try:
+        # Get current STT engine
+        stt_manager = meeting_assistant.stt_manager
+        current_engine = stt_manager.current_engine
+
+        # Check if current engine supports model changing (whisper.cpp)
+        if not hasattr(current_engine, 'set_model_size'):
+            return {
+                "success": False,
+                "error": "Current STT engine does not support model switching"
+            }
+
+        # Change model size
+        success = current_engine.set_model_size(model_size)
+
+        if success:
+            # Update config to persist the change
+            config = meeting_assistant.config
+            if 'stt' in config and 'engines' in config['stt']:
+                engine_name = stt_manager.current_engine_name
+                # Find the base engine config (without model suffix)
+                for key in config['stt']['engines']:
+                    if engine_name.startswith(key):
+                        config['stt']['engines'][key]['model_size'] = model_size
+                        break
+
+            return {
+                "success": True,
+                "model_size": model_size,
+                "message": f"Successfully changed to {model_size} model"
+            }
+        else:
+            return {
+                "success": False,
+                "error": f"Failed to change model to {model_size}. Model may not be downloaded."
+            }
+
+    except Exception as e:
+        logger.error(f"Error changing STT model: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/engines/stt/models")
+async def get_available_stt_models():
+    """Get available STT models (for whisper.cpp)"""
+    if not meeting_assistant:
+        return {"success": False, "error": "Meeting assistant not initialized"}
+
+    try:
+        stt_manager = meeting_assistant.stt_manager
+        current_engine = stt_manager.current_engine
+
+        if hasattr(current_engine, 'get_available_models'):
+            available = current_engine.get_available_models()
+            current = getattr(current_engine, 'model_size', None)
+            return {
+                "success": True,
+                "models": available,
+                "current": current
+            }
+        else:
+            return {
+                "success": False,
+                "error": "Current engine does not support model listing"
+            }
+    except Exception as e:
+        logger.error(f"Error getting available models: {e}")
+        return {"success": False, "error": str(e)}
+
 @app.post("/api/meeting/start")
 async def start_meeting(title: str = Form(None), participants: str = Form(None)):
     """Start a new meeting"""

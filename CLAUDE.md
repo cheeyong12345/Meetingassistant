@@ -1,1 +1,3 @@
 - always use sub agent for the task
+- always show to-dos first
+- always use sub agent for specified task
