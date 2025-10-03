@@ -1,0 +1,36 @@
+# RISC-V Configuration for Whisper.cpp STT
+# Add this to your config.yaml to use whisper.cpp
+
+stt:
+  default_engine: whispercpp  # Use whisper.cpp instead of whisper
+
+  engines:
+    # Whisper.cpp - C++ implementation, no PyTorch needed (RECOMMENDED FOR RISC-V)
+    whispercpp:
+      model_size: base  # Options: tiny.en, tiny, base, small, medium, large
+      language: auto    # 'auto' for auto-detect, or specific language like 'en', 'zh', etc.
+      threads: 4        # Number of CPU threads to use
+      translate: false  # Set to true to translate to English
+
+    # Original Whisper - requires PyTorch (NOT available on RISC-V)
+    # whisper:
+    #   model_size: base
+    #   device: cpu
+    #   language: auto
+
+    # Vosk - lightweight alternative
+    # vosk:
+    #   model_path: models/vosk/vosk-model-small-en-us-0.15
+    #   sample_rate: 16000
+
+# Summarization via ESWIN NPU
+summarization:
+  default_engine: qwen
+
+  engines:
+    qwen:
+      model_name: Qwen/Qwen2.5-3B-Instruct
+      device: auto
+      use_npu: true  # Will use ESWIN NPU binary if available
+      max_tokens: 1000
+      temperature: 0.7

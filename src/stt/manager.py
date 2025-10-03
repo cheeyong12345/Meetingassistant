@@ -26,6 +26,14 @@ except ImportError:
     WhisperEngine = None
     WHISPER_AVAILABLE = False
 
+# Whisper.cpp is optional (C++ implementation, no PyTorch - recommended for RISC-V)
+try:
+    from src.stt.whispercpp_engine import WhisperCppEngine
+    WHISPERCPP_AVAILABLE = True
+except ImportError:
+    WhisperCppEngine = None
+    WHISPERCPP_AVAILABLE = False
+
 # Vosk is optional (may not be installed)
 try:
     from src.stt.vosk_engine import VoskEngine
@@ -101,6 +109,22 @@ class STTManager:
                 )
         elif 'whisper' in engines_config and not WHISPER_AVAILABLE:
             logger.warning("Whisper engine requested but not available (PyTorch not installed)")
+
+        # Register Whisper.cpp engine (if available) - recommended for RISC-V
+        if 'whispercpp' in engines_config and WHISPERCPP_AVAILABLE:
+            try:
+                whispercpp_config = engines_config['whispercpp']
+                model_size = whispercpp_config.get('model_size', 'base')
+                engine_name = f"whispercpp-{model_size}"
+                self.engines[engine_name] = WhisperCppEngine(whispercpp_config)
+                logger.info(f"Registered STT engine: {engine_name} (no PyTorch needed!)")
+            except Exception as e:
+                logger.error(
+                    f"Failed to register Whisper.cpp engine: {e}",
+                    exc_info=True
+                )
+        elif 'whispercpp' in engines_config and not WHISPERCPP_AVAILABLE:
+            logger.warning("Whisper.cpp engine requested but not available")
 
         # Register Vosk engine (if available)
         if 'vosk' in engines_config and VOSK_AVAILABLE:
