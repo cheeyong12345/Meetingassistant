@@ -22,8 +22,12 @@ try:
 
     from src.meeting import MeetingAssistant
     from src.config import config
+    from src.utils.logger import get_logger
 
     DEPENDENCIES_AVAILABLE = True
+
+    # Initialize logger
+    logger = get_logger(__name__)
 
 except ImportError as e:
     print(f"❌ Missing web dependencies: {e}")
@@ -205,13 +209,13 @@ async def change_stt_model(model_size: str = Form(...)):
 
         if success:
             # Update config to persist the change
-            config = meeting_assistant.config
-            if 'stt' in config and 'engines' in config['stt']:
+            # Note: config is imported at module level from src.config
+            if hasattr(config, 'stt') and hasattr(config.stt, 'engines'):
                 engine_name = stt_manager.current_engine_name
                 # Find the base engine config (without model suffix)
-                for key in config['stt']['engines']:
+                for key in config.stt.engines:
                     if engine_name.startswith(key):
-                        config['stt']['engines'][key]['model_size'] = model_size
+                        config.stt.engines[key]['model_size'] = model_size
                         break
 
             return {

@@ -126,6 +126,14 @@ class SummarizationManager:
                 default_engine = engine_name
                 break
 
+        # If default not found, use the first available engine
+        if not default_engine and self.engines:
+            default_engine = list(self.engines.keys())[0]
+            logger.info(
+                f"Default engine '{default_base}' not found, "
+                f"using first available engine: {default_engine}"
+            )
+
         if default_engine:
             logger.info(f"Setting default summarization engine: {default_engine}")
             self.switch_engine(default_engine)
