@@ -1,0 +1,171 @@
+# Meeting Assistant DEBUG Configuration
+# This configuration enables verbose logging for debugging
+
+app:
+  name: "Meeting Assistant (DEBUG MODE)"
+  version: "1.0.0"
+  debug: true  # Enable debug mode
+  log_level: "DEBUG"  # Show all logs: DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+# Server configuration
+server:
+  host: "localhost"
+  port: 8001  # Different port to avoid conflicts
+  reload: true
+  log_level: "debug"
+
+# Logging configuration
+logging:
+  version: 1
+  disable_existing_loggers: false
+
+  formatters:
+    detailed:
+      format: '[%(asctime)s] %(levelname)-8s [%(name)s:%(funcName)s:%(lineno)d] %(message)s'
+      datefmt: '%Y-%m-%d %H:%M:%S'
+    simple:
+      format: '%(levelname)s: %(message)s'
+
+  handlers:
+    console:
+      class: logging.StreamHandler
+      level: DEBUG
+      formatter: detailed
+      stream: ext://sys.stdout
+
+    file:
+      class: logging.handlers.RotatingFileHandler
+      level: DEBUG
+      formatter: detailed
+      filename: debug/logs/debug.log
+      maxBytes: 10485760  # 10MB
+      backupCount: 5
+
+    error_file:
+      class: logging.handlers.RotatingFileHandler
+      level: ERROR
+      formatter: detailed
+      filename: debug/logs/error.log
+      maxBytes: 10485760  # 10MB
+      backupCount: 5
+
+  root:
+    level: DEBUG
+    handlers: [console, file, error_file]
+
+  loggers:
+    uvicorn:
+      level: DEBUG
+    uvicorn.error:
+      level: DEBUG
+    uvicorn.access:
+      level: DEBUG
+    whisper:
+      level: DEBUG
+    transformers:
+      level: DEBUG
+    torch:
+      level: DEBUG
+    onnxruntime:
+      level: DEBUG
+
+# Audio settings
+audio:
+  sample_rate: 16000
+  channels: 1
+  chunk_size: 1024
+  format: "wav"
+  input_device:   # Auto-detect
+  debug_save_audio: true  # Save audio files for debugging
+  debug_audio_dir: "debug/audio"
+
+# Speech-to-Text models
+stt:
+  default_engine: "whisper"
+  debug_mode: true  # Enable STT debug output
+  engines:
+    whisper:
+      model_size: "base"
+      language: "auto"
+      device: "auto"
+      use_npu: true
+      verbose: true  # Enable Whisper verbose output
+      debug_save_results: true  # Save transcription results
+      debug_results_dir: "debug/stt_results"
+    vosk:
+      model_path: "models/vosk-model-en-us-0.22"
+      language: "en-us"
+      debug: true
+    google:
+      api_key: null
+      language: "en-US"
+      debug: true
+
+# Summarization models
+summarization:
+  default_engine: "qwen3"
+  debug_mode: true  # Enable summarization debug output
+  engines:
+    qwen3:
+      model_name: "Qwen/Qwen2.5-3B-Instruct"
+      device: "auto"
+      use_npu: true
+      max_tokens: 1000
+      temperature: 0.7
+      verbose: true  # Enable verbose output
+      debug_save_results: true  # Save summaries
+      debug_results_dir: "debug/summaries"
+    ollama:
+      base_url: "http://localhost:11434"
+      model_name: "qwen2.5:1.5b"
+      max_tokens: 1000
+      temperature: 0.7
+      debug: true
+    openai:
+      api_key: null
+      model: "gpt-3.5-turbo"
+      max_tokens: 1000
+      debug: true
+
+# Storage settings
+storage:
+  data_dir: "./debug/data"
+  meetings_dir: "./debug/data/meetings"
+  models_dir: "./models"
+  database_url: "sqlite:///./debug/data/meetings.db"
+  debug_save_all: true  # Save all intermediate data
+
+# Processing settings
+processing:
+  real_time_stt: true
+  auto_summarize: true
+  speaker_detection: false
+  chunk_duration: 30
+  max_meeting_duration: 14400
+  debug_log_chunks: true  # Log each audio chunk processed
+  debug_save_chunks: true  # Save audio chunks
+  debug_chunks_dir: "debug/audio_chunks"
+
+# Hardware acceleration settings
+hardware:
+  auto_detect: true
+  prefer_npu: true
+  debug_hardware_info: true  # Print detailed hardware info
+  npu_settings:
+    rk3588:
+      enabled: true
+      model_format: "rknn"
+      debug: true
+    eic7700:
+      enabled: true
+      model_format: "onnx"
+      use_ennp_ep: true
+      debug: true
+
+# Performance monitoring
+performance:
+  enable_profiling: true  # Enable performance profiling
+  profile_output_dir: "debug/profiles"
+  log_execution_time: true  # Log execution time for operations
+  log_memory_usage: true  # Log memory usage
+  log_npu_utilization: true  # Log NPU utilization if available

@@ -1,0 +1,32 @@
+# Ignore generated logs and data files
+logs/
+audio/
+audio_chunks/
+stt_results/
+summaries/
+profiles/
+data/
+
+# Keep directory structure
+!logs/.gitkeep
+!audio/.gitkeep
+!audio_chunks/.gitkeep
+!stt_results/.gitkeep
+!summaries/.gitkeep
+!profiles/.gitkeep
+!data/.gitkeep
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Ignore temporary files
+*.tmp
+*.log
+*.swp
+*.swo
+*~
+.DS_Store
