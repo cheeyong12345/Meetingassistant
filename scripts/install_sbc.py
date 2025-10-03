@@ -169,9 +169,22 @@ def install_system_packages(sbc_type: str) -> bool:
         print_status("Adding EIC7700/RISC-V-specific packages")
         # RISC-V toolchain and libraries
         packages.extend([
-            "gcc-riscv64-linux-gnu", "g++-riscv64-linux-gnu"
+            "gfortran",  # Required for SciPy compilation
+            "libopenblas-dev",  # BLAS library for NumPy/SciPy
+            "liblapack-dev",  # LAPACK library for SciPy
+            "libblas-dev"  # Basic Linear Algebra Subprograms
         ])
         # Note: ENNP SDK should be installed separately from vendor
+
+    # RISC-V generic packages
+    elif "riscv" in sbc_type:
+        print_status("Adding RISC-V generic packages")
+        packages.extend([
+            "gfortran",
+            "libopenblas-dev",
+            "liblapack-dev",
+            "libblas-dev"
+        ])
 
     print_status(f"Installing packages: {', '.join(packages)}")
     run_command(["sudo", "apt", "update"])
@@ -410,26 +423,60 @@ def install_onnxruntime_riscv(pip_path: Path, python_path: Path) -> bool:
         print_warning("Continuing with limited inference capabilities")
         return True  # Don't fail the whole installation
 
-def install_python_deps() -> bool:
+def install_python_deps(arch: str = "aarch64") -> bool:
     """Install Python dependencies"""
     print_header("Installing Python Dependencies")
 
     pip_path = Path("venv/bin/pip")
 
-    # Install dependencies in groups
-    dep_groups = [
-        (["numpy", "scipy"], "basic dependencies"),
-        (["pyaudio", "pydub", "soundfile"], "audio processing dependencies"),
-        (["fastapi", "uvicorn", "jinja2", "python-multipart", "python-socketio"], "web framework dependencies"),
-        (["click", "rich"], "CLI dependencies"),
-        (["python-dotenv", "requests", "aiofiles", "sqlalchemy", "pyyaml"], "utility dependencies"),
-        (["openai-whisper", "SpeechRecognition", "vosk"], "Speech-to-Text engines"),
-        (["transformers", "accelerate", "sentencepiece", "protobuf"], "AI/ML dependencies")
-    ]
+    # For RISC-V, handle SciPy separately as it needs Fortran compiler
+    if arch in ["riscv64", "riscv"]:
+        print_status("Installing NumPy first (may take several minutes on RISC-V)...")
+        numpy_result = run_command([str(pip_path), "install", "numpy"], check=False)
+        if numpy_result.returncode != 0:
+            print_error("NumPy installation failed")
+            return False
 
-    for deps, desc in dep_groups:
-        print_status(f"Installing {desc}")
-        run_command([str(pip_path), "install"] + deps)
+        print_status("Installing SciPy (may take 10-30 minutes on RISC-V)...")
+        print_warning("SciPy is being compiled from source - this is normal for RISC-V")
+        scipy_result = run_command([str(pip_path), "install", "scipy"], check=False, timeout=3600000)  # 1 hour timeout
+        if scipy_result.returncode != 0:
+            print_warning("SciPy installation failed - continuing without it")
+            print_status("Note: Core functionality will work without SciPy")
+    else:
+        # For non-RISC-V, install normally
+        print_status("Installing basic dependencies")
+        run_command([str(pip_path), "install", "numpy", "scipy"])
+
+    # Audio processing
+    print_status("Installing audio processing dependencies")
+    run_command([str(pip_path), "install", "pyaudio", "pydub", "soundfile"])
+
+    # Web framework
+    print_status("Installing web framework dependencies")
+    run_command([str(pip_path), "install", "fastapi", "uvicorn", "jinja2", "python-multipart", "python-socketio"])
+
+    # CLI tools
+    print_status("Installing CLI dependencies")
+    run_command([str(pip_path), "install", "click", "rich"])
+
+    # Utilities
+    print_status("Installing utility dependencies")
+    run_command([str(pip_path), "install", "python-dotenv", "requests", "aiofiles", "sqlalchemy", "pyyaml"])
+
+    # STT engines
+    print_status("Installing Speech-to-Text engines")
+    whisper_result = run_command([str(pip_path), "install", "openai-whisper"], check=False)
+    if whisper_result.returncode != 0:
+        print_warning("Whisper installation failed - may need PyTorch first")
+
+    run_command([str(pip_path), "install", "SpeechRecognition", "vosk"], check=False)
+
+    # AI/ML dependencies
+    print_status("Installing AI/ML dependencies")
+    transformers_result = run_command([str(pip_path), "install", "transformers", "accelerate", "sentencepiece", "protobuf"], check=False)
+    if transformers_result.returncode != 0:
+        print_warning("Some AI/ML dependencies failed - may work with ONNX Runtime instead")
 
     # Install optional dependencies
     print_status("Installing optional dependencies")
@@ -1159,7 +1206,7 @@ def main():
             setup_audio()
             setup_python_env()
             install_pytorch(arch, sbc_type)
-            install_python_deps()
+            install_python_deps(arch)
 
             # Display hardware-specific notes
             if sbc_type == "eic7700":
