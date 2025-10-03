@@ -311,6 +311,50 @@ class WhisperCppEngine(STTEngine):
 
         return available
 
+    def get_supported_languages(self) -> list[str]:
+        """
+        Get list of supported languages for Whisper.
+
+        Returns:
+            List of ISO language codes supported by Whisper
+        """
+        # Whisper supports 99 languages
+        return [
+            'en', 'zh', 'de', 'es', 'ru', 'ko', 'fr', 'ja', 'pt', 'tr', 'pl', 'ca', 'nl', 'ar',
+            'sv', 'it', 'id', 'hi', 'fi', 'vi', 'he', 'uk', 'el', 'ms', 'cs', 'ro', 'da', 'hu',
+            'ta', 'no', 'th', 'ur', 'hr', 'bg', 'lt', 'la', 'mi', 'ml', 'cy', 'sk', 'te', 'fa',
+            'lv', 'bn', 'sr', 'az', 'sl', 'kn', 'et', 'mk', 'br', 'eu', 'is', 'hy', 'ne', 'mn',
+            'bs', 'kk', 'sq', 'sw', 'gl', 'mr', 'pa', 'si', 'km', 'sn', 'yo', 'so', 'af', 'oc',
+            'ka', 'be', 'tg', 'sd', 'gu', 'am', 'yi', 'lo', 'uz', 'fo', 'ht', 'ps', 'tk', 'nn',
+            'mt', 'sa', 'lb', 'my', 'bo', 'tl', 'mg', 'as', 'tt', 'haw', 'ln', 'ha', 'ba', 'jw',
+            'su'
+        ]
+
+    def set_language(self, language: str) -> bool:
+        """
+        Set the language for transcription.
+
+        Args:
+            language: ISO language code (e.g., 'en', 'zh') or 'auto' for auto-detection
+
+        Returns:
+            True if language was set successfully, False otherwise
+        """
+        try:
+            # Validate language
+            if language != 'auto' and language not in self.get_supported_languages():
+                logger.warning(
+                    f"Language '{language}' not in supported list, but will attempt to use it anyway"
+                )
+
+            self.language = language
+            logger.info(f"Language set to: {language}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to set language: {e}")
+            return False
+
     def get_info(self) -> Dict[str, Any]:
         """Get engine information including available models"""
         info = super().get_info()
