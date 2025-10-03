@@ -5,7 +5,14 @@ This module provides real-time audio recording functionality with
 support for streaming callbacks and WAV file export.
 """
 
-import pyaudio
+# PyAudio is optional (not needed for RISC-V with whisper.cpp)
+try:
+    import pyaudio
+    PYAUDIO_AVAILABLE = True
+except ImportError:
+    pyaudio = None
+    PYAUDIO_AVAILABLE = False
+
 import wave
 import numpy as np
 import threading
@@ -58,11 +65,16 @@ class AudioRecorder:
             config: Configuration dictionary containing audio settings
         """
         logger.debug("Initializing AudioRecorder")
+
+        if not PYAUDIO_AVAILABLE:
+            logger.warning("PyAudio not available - audio recording disabled")
+            logger.info("For RISC-V: Use whisper.cpp which handles audio directly")
+
         self.config = config
         self.sample_rate = config.get('sample_rate', 16000)
         self.channels = config.get('channels', 1)
         self.chunk_size = config.get('chunk_size', 1024)
-        self.format = pyaudio.paInt16
+        self.format = pyaudio.paInt16 if PYAUDIO_AVAILABLE else None
 
         self.audio = None
         self.stream = None
@@ -82,6 +94,10 @@ class AudioRecorder:
         Raises:
             AudioDeviceError: If PyAudio initialization fails
         """
+        if not PYAUDIO_AVAILABLE:
+            logger.warning("PyAudio not available - skipping audio recorder initialization")
+            return False
+
         try:
             self.audio = pyaudio.PyAudio()
             logger.info("Audio recorder initialized successfully")
