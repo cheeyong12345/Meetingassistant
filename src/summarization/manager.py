@@ -9,8 +9,6 @@ interface for text summarization operations.
 from typing import Any, Optional
 
 from src.summarization.base import SummarizationEngine
-from src.summarization.qwen_engine import QwenEngine
-from src.summarization.ollama_engine import OllamaEngine
 from src.utils.logger import get_logger
 from src.exceptions import (
     EngineNotAvailableError,
@@ -18,6 +16,21 @@ from src.exceptions import (
     SummaryGenerationError,
     ActionItemExtractionError
 )
+
+# Import engines conditionally (may not be available on RISC-V)
+try:
+    from src.summarization.qwen_engine import QwenEngine
+    QWEN_AVAILABLE = True
+except ImportError as e:
+    QwenEngine = None
+    QWEN_AVAILABLE = False
+
+try:
+    from src.summarization.ollama_engine import OllamaEngine
+    OLLAMA_AVAILABLE = True
+except ImportError:
+    OllamaEngine = None
+    OLLAMA_AVAILABLE = False
 
 # Initialize logger
 logger = get_logger(__name__)
@@ -71,8 +84,8 @@ class SummarizationManager:
         logger.info("Registering summarization engines")
         engines_config = self.config.get('engines', {})
 
-        # Register Qwen engine
-        if 'qwen3' in engines_config:
+        # Register Qwen engine (if available)
+        if 'qwen3' in engines_config and QWEN_AVAILABLE and QwenEngine is not None:
             try:
                 qwen_config = engines_config['qwen3']
                 model_name = qwen_config.get('model_name', 'Qwen/Qwen2.5-3B-Instruct')
@@ -89,9 +102,11 @@ class SummarizationManager:
                     f"Failed to register Qwen engine: {e}",
                     exc_info=True
                 )
+        elif 'qwen3' in engines_config and not QWEN_AVAILABLE:
+            logger.warning("Qwen engine requested but not available (transformers not installed)")
 
-        # Register Ollama engine
-        if 'ollama' in engines_config:
+        # Register Ollama engine (if available)
+        if 'ollama' in engines_config and OLLAMA_AVAILABLE and OllamaEngine is not None:
             try:
                 ollama_config = engines_config['ollama']
                 model_name = ollama_config.get('model_name', 'qwen2.5:1.5b')
@@ -103,15 +118,16 @@ class SummarizationManager:
                     f"Failed to register Ollama engine: {e}",
                     exc_info=True
                 )
+        elif 'ollama' in engines_config and not OLLAMA_AVAILABLE:
+            logger.warning("Ollama engine requested but not available")
 
         # Verify at least one engine was registered
         if not self.engines:
-            error_msg = "No summarization engines could be registered"
-            logger.error(error_msg)
-            raise EngineInitializationError(
-                error_msg,
-                details={'config': engines_config}
-            )
+            warning_msg = "No summarization engines could be registered - summarization features will be disabled"
+            logger.warning(warning_msg)
+            logger.info("App can still work for transcription without summarization")
+            # Don't raise error - allow app to work without summarization
+            return
 
         # Set default engine (need to find the actual registered name)
         default_base = self.config.get('default_engine', 'qwen3')
