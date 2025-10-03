@@ -227,18 +227,17 @@ class WhisperCppEngine(STTEngine):
                 'error': str(e)
             }
 
-    def transcribe_stream(self, audio_chunk: bytes) -> Dict[str, Any]:
+    def transcribe_stream(self, audio_chunk: bytes) -> Optional[str]:
         """
         Stream transcription not directly supported by whisper.cpp.
         We buffer chunks and transcribe when enough data is accumulated.
+
+        Returns:
+            None since streaming is not yet implemented
         """
-        # For now, return empty - streaming needs more complex buffering
-        logger.warning("Stream transcription not yet implemented for whisper.cpp")
-        return {
-            'text': '',
-            'partial': True,
-            'success': True
-        }
+        # For now, return None - streaming needs more complex buffering
+        logger.debug("Stream transcription not yet implemented for whisper.cpp")
+        return None
 
     def _ensure_wav_format(self, audio_path: str) -> str:
         """

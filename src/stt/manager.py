@@ -347,12 +347,25 @@ class STTManager:
         try:
             result = self.current_engine.transcribe_stream(audio_chunk)
 
-            if result:
-                logger.debug(
-                    f"Stream transcription result: {result[:50]}..."
-                )
-
-            return result
+            # Handle different return types (string or dict)
+            if isinstance(result, dict):
+                # Engine returned a dictionary (like whispercpp_engine)
+                text = result.get('text', '')
+                if text:
+                    logger.debug(
+                        f"Stream transcription result: {text[:50]}..."
+                    )
+                return text if text else None
+            elif isinstance(result, str):
+                # Engine returned a string directly
+                if result:
+                    logger.debug(
+                        f"Stream transcription result: {result[:50]}..."
+                    )
+                return result
+            else:
+                # No result or None
+                return None
 
         except Exception as e:
             logger.error(
