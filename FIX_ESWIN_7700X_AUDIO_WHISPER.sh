@@ -202,11 +202,13 @@ python3 test_audio_devices.py
 # 5. Fix Whisper.cpp for RISC-V
 # ============================================================================
 echo ""
-echo -e "${YELLOW}[5/8] Fixing Whisper.cpp for RISC-V${NC}"
+echo -e "${YELLOW}[5/8] Checking Whisper.cpp for RISC-V${NC}"
 echo "----------------------------------------"
 
 WHISPER_DIR="$HOME/git_lib/whisper.cpp"
+NEED_BUILD=false
 
+# Check if whisper.cpp directory exists
 if [ ! -d "$WHISPER_DIR" ]; then
     echo "Whisper.cpp not found at $WHISPER_DIR"
     echo "Cloning whisper.cpp..."
@@ -214,94 +216,131 @@ if [ ! -d "$WHISPER_DIR" ]; then
     cd "$HOME/git_lib"
     git clone https://github.com/ggerganov/whisper.cpp.git
     cd "$WHISPER_DIR"
+    NEED_BUILD=true
 else
     echo "Whisper.cpp found at $WHISPER_DIR"
     cd "$WHISPER_DIR"
 
-    # Clean previous builds
-    echo "Cleaning previous builds..."
+    # Check if binary already exists and works
+    WHISPER_BIN=""
+    if [ -f "$WHISPER_DIR/build/bin/whisper-cli" ]; then
+        WHISPER_BIN="$WHISPER_DIR/build/bin/whisper-cli"
+    elif [ -f "$WHISPER_DIR/build/bin/main" ]; then
+        WHISPER_BIN="$WHISPER_DIR/build/bin/main"
+    elif [ -f "$WHISPER_DIR/main" ]; then
+        WHISPER_BIN="$WHISPER_DIR/main"
+    fi
+
+    if [ ! -z "$WHISPER_BIN" ]; then
+        echo "Found existing binary: $WHISPER_BIN"
+        echo "Testing if binary works..."
+        if timeout 5 "$WHISPER_BIN" -h > /dev/null 2>&1; then
+            echo -e "${GREEN}✓ Existing whisper binary works! Skipping rebuild.${NC}"
+            NEED_BUILD=false
+        else
+            echo -e "${YELLOW}Existing binary doesn't work. Will rebuild.${NC}"
+            NEED_BUILD=true
+        fi
+    else
+        echo "No binary found. Will build."
+        NEED_BUILD=true
+    fi
+fi
+
+# Only build if needed
+if [ "$NEED_BUILD" = true ]; then
+    echo ""
+    echo "Building Whisper.cpp for RISC-V Eswin 7700x..."
+
+    # Clean previous failed builds if any
+    cd "$WHISPER_DIR"
     make clean 2>/dev/null || true
     rm -rf build 2>/dev/null || true
-fi
-
-echo ""
-echo "Building Whisper.cpp for RISC-V Eswin 7700x..."
-
-# Detect RISC-V ISA string (rv64gc, rv64imafc, etc.)
-# RISC-V doesn't support -march=native, we need to detect the ISA manually
-RISCV_ARCH=""
-if grep -q "rv64" /proc/cpuinfo 2>/dev/null; then
-    # Extract ISA from cpuinfo if available
-    RISCV_ARCH=$(grep "isa" /proc/cpuinfo | head -1 | awk '{print $NF}')
-elif command -v gcc &> /dev/null; then
-    # Try to get from gcc target
-    GCC_TARGET=$(gcc -dumpmachine)
-    if [[ "$GCC_TARGET" == *"riscv64"* ]]; then
-        RISCV_ARCH="rv64gc"  # Common baseline
-    fi
-fi
-
-echo "Detected RISC-V architecture: ${RISCV_ARCH:-default}"
-
-# Build with CMake (preferred for RISC-V)
-echo "Building with CMake..."
-mkdir -p build
-cd build
-
-# Configure with RISC-V optimizations
-# Don't use -march=native on RISC-V, use detected ISA or default
-if [ -z "$RISCV_ARCH" ]; then
-    # No specific arch detected, use basic optimization
-    cmake .. \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DWHISPER_BUILD_TESTS=OFF \
-        -DWHISPER_BUILD_EXAMPLES=ON \
-        -DCMAKE_C_FLAGS="-O3" \
-        -DCMAKE_CXX_FLAGS="-O3"
 else
-    # Use detected RISC-V ISA
-    cmake .. \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DWHISPER_BUILD_TESTS=OFF \
-        -DWHISPER_BUILD_EXAMPLES=ON \
-        -DCMAKE_C_FLAGS="-march=${RISCV_ARCH} -O3" \
-        -DCMAKE_CXX_FLAGS="-march=${RISCV_ARCH} -O3"
+    echo ""
+    echo "Skipping Whisper.cpp build (already working)"
+    # Skip to the next section
+    cd "$SCRIPT_DIR"
 fi
 
-# Build with available cores
-make -j$(nproc) || {
-    echo -e "${YELLOW}CMake build failed, trying Makefile...${NC}"
-    cd "$WHISPER_DIR"
+# Only do the build if NEED_BUILD is true
+if [ "$NEED_BUILD" = true ]; then
+    # Detect RISC-V ISA string (rv64gc, rv64imafc, etc.)
+    # RISC-V doesn't support -march=native, we need to detect the ISA manually
+    RISCV_ARCH=""
+    if grep -q "rv64" /proc/cpuinfo 2>/dev/null; then
+        # Extract ISA from cpuinfo if available
+        RISCV_ARCH=$(grep "isa" /proc/cpuinfo | head -1 | awk '{print $NF}')
+    elif command -v gcc &> /dev/null; then
+        # Try to get from gcc target
+        GCC_TARGET=$(gcc -dumpmachine)
+        if [[ "$GCC_TARGET" == *"riscv64"* ]]; then
+            RISCV_ARCH="rv64gc"  # Common baseline
+        fi
+    fi
 
-    # Try traditional Makefile with RISC-V flags (no -march=native)
-    make clean
+    echo "Detected RISC-V architecture: ${RISCV_ARCH:-default}"
+
+    # Build with CMake (preferred for RISC-V)
+    echo "Building with CMake..."
+    mkdir -p build
+    cd build
+
+    # Configure with RISC-V optimizations
+    # Don't use -march=native on RISC-V, use detected ISA or default
     if [ -z "$RISCV_ARCH" ]; then
-        CFLAGS="-O3" CXXFLAGS="-O3" make -j$(nproc)
+        # No specific arch detected, use basic optimization
+        cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DWHISPER_BUILD_TESTS=OFF \
+            -DWHISPER_BUILD_EXAMPLES=ON \
+            -DCMAKE_C_FLAGS="-O3" \
+            -DCMAKE_CXX_FLAGS="-O3"
     else
-        CFLAGS="-O3 -march=${RISCV_ARCH}" CXXFLAGS="-O3 -march=${RISCV_ARCH}" make -j$(nproc)
+        # Use detected RISC-V ISA
+        cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DWHISPER_BUILD_TESTS=OFF \
+            -DWHISPER_BUILD_EXAMPLES=ON \
+            -DCMAKE_C_FLAGS="-march=${RISCV_ARCH} -O3" \
+            -DCMAKE_CXX_FLAGS="-march=${RISCV_ARCH} -O3"
     fi
-}
 
-# Check if binary exists
-echo ""
-echo "Checking Whisper binaries..."
-if [ -f "$WHISPER_DIR/build/bin/whisper-cli" ]; then
-    echo -e "${GREEN}Found: whisper-cli (CMake build)${NC}"
-    WHISPER_BIN="$WHISPER_DIR/build/bin/whisper-cli"
-elif [ -f "$WHISPER_DIR/build/bin/main" ]; then
-    echo -e "${YELLOW}Found: main (CMake build - deprecated)${NC}"
-    WHISPER_BIN="$WHISPER_DIR/build/bin/main"
-elif [ -f "$WHISPER_DIR/main" ]; then
-    echo -e "${YELLOW}Found: main (Makefile build)${NC}"
-    WHISPER_BIN="$WHISPER_DIR/main"
-else
-    echo -e "${RED}No whisper binary found!${NC}"
-    WHISPER_BIN=""
-fi
+    # Build with available cores
+    make -j$(nproc) || {
+        echo -e "${YELLOW}CMake build failed, trying Makefile...${NC}"
+        cd "$WHISPER_DIR"
 
-if [ ! -z "$WHISPER_BIN" ]; then
-    echo "Testing whisper binary..."
-    $WHISPER_BIN -h > /dev/null 2>&1 && echo -e "${GREEN}Whisper binary is working${NC}" || echo -e "${RED}Whisper binary test failed${NC}"
+        # Try traditional Makefile with RISC-V flags (no -march=native)
+        make clean
+        if [ -z "$RISCV_ARCH" ]; then
+            CFLAGS="-O3" CXXFLAGS="-O3" make -j$(nproc)
+        else
+            CFLAGS="-O3 -march=${RISCV_ARCH}" CXXFLAGS="-O3 -march=${RISCV_ARCH}" make -j$(nproc)
+        fi
+    }
+
+    # Check if binary exists after build
+    echo ""
+    echo "Checking Whisper binaries..."
+    if [ -f "$WHISPER_DIR/build/bin/whisper-cli" ]; then
+        echo -e "${GREEN}Found: whisper-cli (CMake build)${NC}"
+        WHISPER_BIN="$WHISPER_DIR/build/bin/whisper-cli"
+    elif [ -f "$WHISPER_DIR/build/bin/main" ]; then
+        echo -e "${YELLOW}Found: main (CMake build - deprecated)${NC}"
+        WHISPER_BIN="$WHISPER_DIR/build/bin/main"
+    elif [ -f "$WHISPER_DIR/main" ]; then
+        echo -e "${YELLOW}Found: main (Makefile build)${NC}"
+        WHISPER_BIN="$WHISPER_DIR/main"
+    else
+        echo -e "${RED}No whisper binary found after build!${NC}"
+        WHISPER_BIN=""
+    fi
+
+    if [ ! -z "$WHISPER_BIN" ]; then
+        echo "Testing whisper binary..."
+        $WHISPER_BIN -h > /dev/null 2>&1 && echo -e "${GREEN}Whisper binary is working${NC}" || echo -e "${RED}Whisper binary test failed${NC}"
+    fi
 fi
 
 # ============================================================================
