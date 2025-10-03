@@ -10,7 +10,6 @@ from typing import Any, Optional, Union
 import numpy as np
 
 from src.stt.base import STTEngine
-from src.stt.whisper_engine import WhisperEngine
 from src.stt.vosk_engine import VoskEngine
 from src.utils.logger import get_logger
 from src.exceptions import (
@@ -19,6 +18,16 @@ from src.exceptions import (
     TranscriptionError,
     StreamTranscriptionError
 )
+
+# Whisper is optional (requires PyTorch which may not be available on RISC-V)
+try:
+    from src.stt.whisper_engine import WhisperEngine
+    WHISPER_AVAILABLE = True
+except ImportError:
+    WhisperEngine = None
+    WHISPER_AVAILABLE = False
+    logger = get_logger(__name__)
+    logger.warning("Whisper engine not available (PyTorch not installed)")
 
 # Initialize logger
 logger = get_logger(__name__)
@@ -72,8 +81,8 @@ class STTManager:
         logger.info("Registering STT engines")
         engines_config = self.config.get('engines', {})
 
-        # Register Whisper engine
-        if 'whisper' in engines_config:
+        # Register Whisper engine (if available)
+        if 'whisper' in engines_config and WHISPER_AVAILABLE:
             try:
                 whisper_config = engines_config['whisper']
                 model_size = whisper_config.get('model_size', 'medium')
@@ -85,6 +94,8 @@ class STTManager:
                     f"Failed to register Whisper engine: {e}",
                     exc_info=True
                 )
+        elif 'whisper' in engines_config and not WHISPER_AVAILABLE:
+            logger.warning("Whisper engine requested but not available (PyTorch not installed)")
 
         # Register Vosk engine
         if 'vosk' in engines_config:
