@@ -10,7 +10,6 @@ from typing import Any, Optional, Union
 import numpy as np
 
 from src.stt.base import STTEngine
-from src.stt.vosk_engine import VoskEngine
 from src.utils.logger import get_logger
 from src.exceptions import (
     EngineNotAvailableError,
@@ -26,8 +25,14 @@ try:
 except ImportError:
     WhisperEngine = None
     WHISPER_AVAILABLE = False
-    logger = get_logger(__name__)
-    logger.warning("Whisper engine not available (PyTorch not installed)")
+
+# Vosk is optional (may not be installed)
+try:
+    from src.stt.vosk_engine import VoskEngine
+    VOSK_AVAILABLE = True
+except ImportError:
+    VoskEngine = None
+    VOSK_AVAILABLE = False
 
 # Initialize logger
 logger = get_logger(__name__)
@@ -97,8 +102,8 @@ class STTManager:
         elif 'whisper' in engines_config and not WHISPER_AVAILABLE:
             logger.warning("Whisper engine requested but not available (PyTorch not installed)")
 
-        # Register Vosk engine
-        if 'vosk' in engines_config:
+        # Register Vosk engine (if available)
+        if 'vosk' in engines_config and VOSK_AVAILABLE:
             try:
                 vosk_config = engines_config['vosk']
                 model_path = vosk_config.get('model_path', 'vosk-model')
@@ -116,15 +121,16 @@ class STTManager:
                     f"Failed to register Vosk engine: {e}",
                     exc_info=True
                 )
+        elif 'vosk' in engines_config and not VOSK_AVAILABLE:
+            logger.warning("Vosk engine requested but not available (vosk not installed)")
 
         # Verify at least one engine was registered
         if not self.engines:
-            error_msg = "No STT engines could be registered"
-            logger.error(error_msg)
-            raise EngineInitializationError(
-                error_msg,
-                details={'config': engines_config}
-            )
+            warning_msg = "No STT engines could be registered - STT features will be disabled"
+            logger.warning(warning_msg)
+            logger.info("App can still work for text summarization without STT")
+            # Don't raise error - allow app to work without STT
+            return
 
         # Set default engine (need to find the actual registered name)
         default_base = self.config.get('default_engine', 'whisper')
@@ -138,10 +144,16 @@ class STTManager:
             logger.info(f"Setting default STT engine: {default_engine}")
             self.switch_engine(default_engine)
         else:
-            logger.warning(
-                f"Default engine '{default_base}' not found, "
-                f"no engine activated"
-            )
+            # Use first available engine as default
+            if self.engines:
+                first_engine = list(self.engines.keys())[0]
+                logger.info(f"Default engine '{default_base}' not found, using: {first_engine}")
+                self.switch_engine(first_engine)
+            else:
+                logger.warning(
+                    f"Default engine '{default_base}' not found, "
+                    f"no engine activated"
+                )
 
     def get_available_engines(self) -> list[str]:
         """Get list of available engine names.

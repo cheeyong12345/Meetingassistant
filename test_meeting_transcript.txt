@@ -1,0 +1,256 @@
+Meeting Transcript: Meeting Assistant Development Discussion
+Date: October 2, 2025
+Duration: 30 minutes
+Participants: John (Product Manager), Sarah (Frontend Developer), Mike (Backend Developer), Lisa (UX Designer)
+
+[00:00] John: Good morning everyone. Thanks for joining today's meeting. We're here to discuss the progress on our Meeting Assistant project. Let's start with a quick round of updates. Sarah, can you start with the frontend?
+
+[00:45] Sarah: Sure, John. So we've made significant progress on the UI redesign. We moved from the gradient-heavy design to a WordPress-style accordion interface. The new design is much cleaner and more professional. I've implemented all four collapsible sections - Meeting Control, Live Transcript, Summary, and Settings. The accordion works smoothly with proper animations.
+
+[01:20] John: That sounds great. How's the responsiveness?
+
+[01:25] Sarah: The responsive design is solid. It works well on mobile, tablet, and desktop. We've also fixed that annoying button growing bug that was happening on click. Buttons now maintain their exact size during all interactions.
+
+[01:45] Mike: That's good to hear. I was getting reports about that bug from early testers.
+
+[01:50] John: Excellent work, Sarah. Mike, what about the backend? How are the AI models performing?
+
+[02:05] Mike: The backend is in great shape. We have two main engines running - Whisper for speech-to-text and Qwen 2.5-3B for summarization. The Whisper medium model is working really well. It provides accurate transcription with confidence scores for each word, which helps users know how reliable the transcription is.
+
+[02:35] Sarah: I've noticed the confidence level feature in the UI. Can you explain that a bit more?
+
+[02:42] Mike: Sure. The confidence level is a percentage from 0 to 100 that shows how certain the AI is about each transcribed word. If someone speaks clearly, you'll see 90-100% confidence. If the audio is unclear or there's background noise, it drops to 70% or below. This helps users identify which parts might need manual review.
+
+[03:15] Lisa: That's a really useful feature from a UX perspective. Users need that kind of feedback.
+
+[03:22] John: Agreed. Mike, what about the summarization? I remember we had issues with it just copying the transcript verbatim.
+
+[03:30] Mike: Yes, that was a major issue we fixed yesterday. The problem was the prompt engineering. The AI wasn't being explicitly told to paraphrase and condense. I rewrote the prompts to be much more specific - now it instructs the model to create a structured summary with an overview, key points, action items, and decisions. We also added validation to detect if the summary is too similar to the original text.
+
+[04:05] Sarah: And there's a fallback mechanism too, right?
+
+[04:08] Mike: Exactly. If the AI model fails or produces a summary that's basically a copy, we fall back to extractive summarization. It takes the first, middle, and last sentences to create a basic summary. Not perfect, but better than nothing.
+
+[04:25] John: Smart approach. What's the compression ratio we're aiming for?
+
+[04:30] Mike: We're targeting 30-40% of the original length. So a 1000-word transcript should produce a 300-400 word summary. The improved prompts are working well for this.
+
+[04:45] Lisa: I have a question about the audio device selection. Can users choose their microphone?
+
+[04:52] Sarah: Yes! I just implemented that yesterday. There's a dropdown in the Settings section that lists all available audio input devices with their technical details - channels, sample rate, etc. Users can select which microphone they want to use, and it updates in real-time.
+
+[05:15] Mike: That was a user request from the initial testing, right?
+
+[05:18] John: Correct. Several testers wanted to use external microphones instead of their laptop's built-in one. This addresses that need perfectly.
+
+[05:30] Lisa: From a UX standpoint, I think we should add some visual feedback when a user switches devices. Maybe a toast notification?
+
+[05:40] Sarah: Good idea. I'll add that to my task list. We're already using toast notifications for other actions, so it'll be consistent.
+
+[05:50] John: Great. Let's talk about testing. What's the current state?
+
+[05:55] Mike: We've tested the web app end-to-end. The server starts successfully, all models load properly - both Whisper and Qwen initialize without errors. The UI loads correctly with the WordPress-style accordion, and all sections are collapsible. We verified that buttons don't grow anymore, and the accordion headers have the proper blue left border when active.
+
+[06:30] Sarah: I've been testing the browser compatibility. Works great on Chrome, Firefox, and Edge. We're using standard CSS with good fallbacks, so even older browsers should handle it reasonably well.
+
+[06:45] John: Any performance concerns?
+
+[06:48] Mike: The models are running on CPU right now, which works but isn't blazing fast. Whisper transcription runs at about 2x real-time speed, and Qwen generates summaries in 2-3 seconds. For production, we should recommend users have GPU support if they want instant responses.
+
+[07:15] Lisa: What about the RK3588 NPU support we discussed earlier?
+
+[07:20] Mike: That's still in the roadmap. The RK3588's NPU would give us significant performance improvements - potentially 5-10x faster for both transcription and summarization. But we need to do the model quantization work first. That's a Phase 2 item.
+
+[07:40] John: Makes sense. Let's keep Phase 1 focused on getting a solid demo ready. Speaking of which, what do we still need to complete?
+
+[07:55] Sarah: From the frontend side, I want to add a few more polish items. Better loading states when models are initializing, some micro-interactions for button clicks, and maybe a tutorial overlay for first-time users.
+
+[08:15] Lisa: I can design the tutorial overlay. We should explain what each accordion section does and highlight the audio device selection since that's not immediately obvious.
+
+[08:28] Sarah: Perfect. I'll implement whatever designs you provide.
+
+[08:35] Mike: On the backend, I want to add better error handling for edge cases. What happens if the Qwen model runs out of memory? What if network connection drops during Ollama API calls? We need graceful degradation for all these scenarios.
+
+[08:55] John: Those are good points. Error handling is crucial for a good user experience. What's our timeline looking like?
+
+[09:05] Mike: I can have the enhanced error handling done by end of week. It's mostly try-catch blocks and logging improvements.
+
+[09:15] Sarah: Same here. The UI polish can be done this week if Lisa gets me the tutorial designs by Wednesday.
+
+[09:23] Lisa: I can do that. I'll have mockups ready by Tuesday end of day.
+
+[09:30] John: Excellent. Let's plan for a full demo review next Monday. I want to see the complete flow - starting a meeting, live transcription with confidence scores, stopping the meeting, and getting an AI-generated summary.
+
+[09:48] Mike: We should probably record that demo session and use our own tool to transcribe and summarize it. That'll be good dogfooding.
+
+[09:58] Sarah: Meta! I love it. Using the meeting assistant to document the meeting assistant demo.
+
+[10:05] John: Great idea. Now, let's discuss documentation. What do we have so far?
+
+[10:12] Mike: We have pretty extensive documentation. There's a README with installation instructions, a quick start guide, detailed configuration documentation, and API documentation for the backend endpoints. We also have the DEMO_READY_GUIDE that walks through the 30-minute setup process.
+
+[10:38] Sarah: I've documented all the UI components and the design system. There's information about the color palette, typography, spacing, and all the CSS classes available.
+
+[10:50] Lisa: We should add user documentation too. Something less technical that explains how to use the application from an end-user perspective, not a developer perspective.
+
+[11:05] John: Absolutely. Lisa, can you take the lead on that? You understand the user journey better than anyone.
+
+[11:12] Lisa: Sure, I'll draft a user guide. It'll cover creating a meeting, understanding the interface, interpreting confidence scores, and how to use the summaries effectively.
+
+[11:25] John: Perfect. Let's talk about deployment options. Where can users run this?
+
+[11:32] Mike: Right now, it's designed for local deployment. Users run it on their own machine - could be a laptop, desktop, or even a Raspberry Pi or RK3588 board. We have installation scripts for both full installation with local models and lightweight installation using API services.
+
+[11:55] Sarah: The lightweight option is good for people who don't have powerful hardware, right?
+
+[12:00] Mike: Exactly. Lightweight mode uses cloud APIs for transcription and summarization instead of running models locally. Smaller footprint, but requires internet connection and API keys.
+
+[12:15] John: Do we support any cloud deployment options?
+
+[12:20] Mike: Not officially, but the application is containerizable. Someone could easily wrap it in Docker and deploy to any cloud provider. That might be something for Phase 2 or community contributions.
+
+[12:35] Lisa: Speaking of community, are we planning to open source this?
+
+[12:40] John: Yes, that's the plan. We'll release it under MIT license once we hit version 1.0. We want to build a community around it.
+
+[12:50] Sarah: That's exciting. I think developers will really like the clean architecture we've built.
+
+[12:57] Mike: The plugin system is also going to be valuable. We've designed it so people can add their own STT engines or summarization models fairly easily.
+
+[13:10] John: Good point. We should document the plugin architecture clearly for contributors.
+
+[13:18] Mike: I can add that to the developer documentation this week.
+
+[13:25] John: Excellent. Let's shift gears and talk about known issues. What are the biggest problems we still have?
+
+[13:35] Sarah: The biggest UI issue is browser caching. Users sometimes don't see updates because their browser is serving cached CSS. We've added cache-busting version parameters to all static files, but users still need to do hard refreshes sometimes.
+
+[13:55] Mike: On the backend, the biggest issue is memory usage. The Qwen 3B model takes about 6-7GB of RAM. If you combine that with Whisper medium, you're looking at 8-9GB total. That's fine for modern machines but tough for resource-constrained devices.
+
+[14:20] Lisa: Is there a way to reduce that?
+
+[14:24] Mike: Yes, through model quantization. We can compress the models from float32 to int8, which reduces size by 75% with minimal quality loss. But that requires additional setup with optimization libraries.
+
+[14:45] John: Add that to the Phase 2 backlog. For now, let's just document the hardware requirements clearly.
+
+[14:52] Mike: Will do.
+
+[14:55] Sarah: Another UI issue - the accordion animation sometimes stutters on slower devices. I think it's because we're animating max-height which isn't GPU-accelerated. Might need to switch to transform-based animations.
+
+[15:15] Lisa: How much of a priority is that?
+
+[15:18] Sarah: Medium priority. It works fine on most modern devices, only noticeable on older hardware or low-end tablets.
+
+[15:28] John: Let's track it but not block the release on it. Okay, what about features for future versions? What's on everyone's wishlist?
+
+[15:40] Mike: Top of my list is speaker diarization - identifying who said what in the meeting. The models exist, we just need to integrate them. That would make the transcripts way more useful.
+
+[15:58] Sarah: I'd love to add collaborative features. Multiple people joining the same meeting session, seeing the transcript in real-time together, adding comments or corrections collaboratively.
+
+[16:15] Lisa: From a UX perspective, I want sentiment analysis visualization. Show emotional tone throughout the meeting - were people positive, negative, frustrated? That contextual information is valuable for meeting analysis.
+
+[16:35] John: Those are all great ideas. I'm making note of them for the roadmap. Mike, is sentiment analysis something Qwen can do?
+
+[16:43] Mike: Yes, absolutely. We can analyze the transcript and assign sentiment scores to different sections. Pretty straightforward to implement once we have the core functionality solid.
+
+[16:58] John: Good to know. What about integrations? Calendar sync, Slack notifications, email summaries?
+
+[17:08] Mike: All doable. We'd need to build integration adapters for each service. Google Calendar, Outlook, Slack, Teams - those would be the high-priority ones based on user research.
+
+[17:25] Sarah: The architecture supports it. We have a clean API that external services can call.
+
+[17:32] John: Let's plan those for version 1.1 or 1.2. First, we need a rock-solid 1.0 release.
+
+[17:42] Lisa: Agreed. Polish what we have before adding more features.
+
+[17:48] John: Alright, let's talk about the demo for next Monday. What's the scenario we'll use?
+
+[17:55] Mike: I suggest we do a realistic product planning meeting. Have 3-4 people, discuss features, make some decisions, assign action items. That'll showcase all the key capabilities.
+
+[18:15] Sarah: We should make sure to test the edge cases too. What happens if someone speaks over someone else? What if there's background noise? What if someone speaks in a heavy accent?
+
+[18:32] Mike: Good points. The confidence scores will help highlight problematic sections. And we can show how users can manually edit the transcript if needed.
+
+[18:48] Lisa: Do we have transcript editing implemented?
+
+[18:52] Sarah: Not yet, but it's on the roadmap. For now, users can download the transcript as text and edit it externally.
+
+[19:05] John: That's acceptable for v1.0. Let's make sure the download functionality works perfectly.
+
+[19:13] Sarah: It does. You can download both the transcript and the summary as text files.
+
+[19:20] John: Perfect. What about data privacy? How are we handling meeting recordings and transcripts?
+
+[19:30] Mike: Everything is stored locally by default. Recordings go to the data/meetings directory, organized by date and meeting ID. Transcripts are stored in JSON format alongside the audio. Users have complete control over their data.
+
+[19:52] John: No cloud uploads unless the user explicitly configures API services?
+
+[19:57] Mike: Correct. In full local mode, everything stays on the user's machine. In API mode, only the data being processed gets sent to the API endpoints - and we document that clearly in the privacy settings.
+
+[20:15] Lisa: We should add a privacy notice in the UI when users first enable API services.
+
+[20:23] Sarah: Good idea. A modal dialog explaining what data will be sent and where?
+
+[20:28] Lisa: Exactly. Transparency builds trust.
+
+[20:33] John: Please add that to the UI tasks, Sarah.
+
+[20:38] Sarah: Got it.
+
+[20:42] John: Alright team, we're running out of time. Let's do a quick round of action items. Sarah?
+
+[20:50] Sarah: I'll complete the UI polish items, implement the privacy modal for API services, add toast notifications for device switching, and work on the tutorial overlay once I get Lisa's designs.
+
+[21:10] Lisa: I'll create the tutorial overlay designs by Tuesday, draft the user guide documentation, and design the privacy notice modal.
+
+[21:25] Mike: I'll enhance error handling across the backend, add plugin architecture documentation, document hardware requirements, and prepare for the Monday demo.
+
+[21:42] John: And I'll coordinate the demo logistics, review all documentation, and start planning the v1.0 release announcement. Anything else we need to cover?
+
+[21:58] Sarah: Just a quick question - what's our target date for v1.0?
+
+[22:05] John: Assuming the demo goes well next Monday and we don't discover any major issues, I'd like to target October 15th for the v1.0 release. That gives us about two weeks for final polish and testing.
+
+[22:22] Mike: That's doable from my end.
+
+[22:26] Sarah: Same here, as long as we don't hit any unexpected blockers.
+
+[22:32] Lisa: I can have all the UX deliverables ready well before then.
+
+[22:38] John: Excellent. Let's plan for that. We'll have our demo Monday, incorporate any feedback, and then do a final sprint to October 15th.
+
+[22:52] Mike: Should we do a beta release first? Let some external users test it?
+
+[23:00] John: Good idea. Let's do a private beta on October 10th with maybe 10-15 trusted users. Get feedback for a few days, fix any critical issues, then public release on the 15th.
+
+[23:18] Sarah: I can set up a beta signup form on a simple landing page.
+
+[23:25] John: Perfect. Mike, can you prepare beta testing documentation?
+
+[23:30] Mike: Sure, I'll include setup instructions, known issues, and a feedback form.
+
+[23:38] John: Great. Lisa, any final UX concerns before we wrap up?
+
+[23:45] Lisa: Just one - we should do a full accessibility audit before release. Screen reader compatibility, keyboard navigation, color contrast ratios. We want to be WCAG 2.1 AA compliant.
+
+[24:00] Sarah: I've been pretty careful with accessibility during development, but a formal audit would be good.
+
+[24:08] John: Can you two work together on that? Sarah, implement the fixes Lisa identifies?
+
+[24:15] Sarah: Absolutely.
+
+[24:18] Lisa: I'll do the audit early next week and flag anything that needs attention.
+
+[24:25] John: Perfect. Alright team, I think we've covered everything. Great progress all around. Let's keep the momentum going and make this demo amazing next Monday.
+
+[24:38] Mike: Sounds good. I'm excited to see how it all comes together.
+
+[24:43] Sarah: Same here. It's been a fun project to work on.
+
+[24:48] Lisa: Agreed. The user feedback is going to be so valuable.
+
+[24:53] John: Thanks everyone for your hard work. Have a great rest of your day, and let's crush it this week.
+
+[25:00] All: Thanks, bye!
+
+[25:05] [Meeting ended]

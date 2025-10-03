@@ -1,0 +1,43 @@
+John: Good morning everyone. Thanks for joining today's meeting about our Meeting Assistant project. Sarah, can you start with the frontend updates?
+
+Sarah: Sure. We've made great progress on the UI redesign. We moved to a WordPress-style accordion interface - much cleaner and more professional. I've implemented all four collapsible sections: Meeting Control, Live Transcript, Summary, and Settings. The accordion animations work smoothly now. I also fixed that button growing bug everyone complained about. Buttons now maintain their exact size during all interactions.
+
+John: That's excellent news. Mike, how are the AI models performing?
+
+Mike: Really well. We have Whisper for speech-to-text and Qwen 2.5-3B for summarization. The Whisper medium model provides accurate transcription with confidence scores for each word. The confidence level shows how certain the AI is - 90-100% for clear audio, below 70% for unclear parts. This helps users identify sections that might need manual review.
+
+Sarah: What about the summarization issue we had?
+
+Mike: Fixed it yesterday. The problem was prompt engineering. The AI was just copying the transcript verbatim. I rewrote the prompts to explicitly instruct the model to paraphrase and create structured summaries with an overview, key points, action items, and decisions. We added validation to detect copying, and there's a fallback to extractive summarization if needed.
+
+John: What's the target compression ratio?
+
+Mike: We're aiming for 30-40% of the original length. A 1000-word transcript should produce a 300-400 word summary.
+
+Sarah: I just added audio device selection too. Users can now choose their microphone from a dropdown showing all available devices with technical details like channels and sample rate.
+
+John: Perfect. That was a key user request. What about testing?
+
+Mike: We've tested end-to-end. Server starts successfully, all models load properly. The UI works great - accordion functions correctly, buttons don't grow, and the blue left border appears on active sections as designed.
+
+John: Any performance concerns?
+
+Mike: Models run on CPU currently. Whisper transcribes at 2x real-time speed, and Qwen generates summaries in 2-3 seconds. For production, we recommend GPU support for faster response times.
+
+John: What's left to complete?
+
+Sarah: I want to add better loading states, micro-interactions, and a tutorial overlay for first-time users.
+
+Mike: I need to enhance error handling for edge cases - out of memory scenarios, network failures, that kind of thing.
+
+John: Timeline?
+
+Sarah: I can finish the UI polish this week.
+
+Mike: Same here for error handling.
+
+John: Great. Let's plan for a full demo next Monday. We'll showcase the complete flow - starting a meeting, live transcription with confidence scores, stopping, and getting the AI summary. Let's use our own tool to document that demo session.
+
+Sarah: Meta! I love it.
+
+John: Perfect. Let's make it happen. Thanks everyone!
