@@ -196,8 +196,9 @@ class MeetingManager {
 
   static async startMeeting(title, participants) {
     const formData = new FormData();
-    if (title) formData.append('title', title);
-    if (participants) formData.append('participants', participants);
+    // Always append fields, even if empty, to prevent multipart parsing errors
+    formData.append('title', title || '');
+    formData.append('participants', participants || '');
 
     try {
       const response = await API.post('/api/meeting/start', formData);
