@@ -21,6 +21,22 @@ if [ ! -f "config.yaml" ]; then
     exit 1
 fi
 
+# Add server section if missing
+if ! grep -q "^server:" config.yaml; then
+    echo "→ Adding missing server section to config.yaml..."
+    cat >> config.yaml << 'EOF'
+
+# Server configuration
+server:
+  host: "0.0.0.0"
+  port: 8000
+  reload: true
+EOF
+    echo "✅ Server section added"
+else
+    echo "✅ Server section already exists"
+fi
+
 # Add storage section if missing
 if ! grep -q "^storage:" config.yaml; then
     echo "→ Adding missing storage section to config.yaml..."
@@ -121,6 +137,29 @@ echo "✅ Transformers setup complete"
 
 echo ""
 echo "════════════════════════════════════════════════════════════════"
+echo "🎤 Installing PyAudio (for microphone input)"
+echo "════════════════════════════════════════════════════════════════"
+echo ""
+
+# PyAudio needs portaudio dev library
+echo "→ Installing portaudio development files..."
+if sudo apt install -y portaudio19-dev python3-dev 2>/dev/null; then
+    echo "✅ Portaudio dev installed"
+else
+    echo "⚠️  Portaudio installation had issues"
+fi
+
+# Install PyAudio from source
+echo "→ Installing PyAudio (building from source)..."
+if pip3 install --break-system-packages --no-cache-dir pyaudio 2>/dev/null; then
+    echo "✅ PyAudio installed"
+else
+    echo "⚠️  PyAudio installation failed - live recording may not work"
+    echo "   You can still use the app for transcribing audio files"
+fi
+
+echo ""
+echo "════════════════════════════════════════════════════════════════"
 echo "🧪 Testing Web App Dependencies"
 echo "════════════════════════════════════════════════════════════════"
 echo ""
@@ -180,11 +219,17 @@ except Exception as e:
     print(f"  ❌ click: {e}")
     errors.append("click")
 
+try:
+    import pyaudio
+    print("  ✅ pyaudio (for microphone)")
+except Exception as e:
+    print(f"  ⚠️  pyaudio: {e} (optional - needed for live recording)")
+
 if errors:
     print(f"\n⚠️  Some imports failed: {', '.join(errors)}")
     print("The app may still work with available packages")
 else:
-    print("\n✅ All dependencies available!")
+    print("\n✅ All core dependencies available!")
 PYTEST
 
 echo ""
