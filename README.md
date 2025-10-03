@@ -34,6 +34,12 @@ AI-powered meeting transcription and summarization tool with multi-model support
 
 ## Quick Start
 
+### Platform-Specific Guides
+
+- **🔧 RISC-V (ESWIN EIC7700)**: See [docs/riscv/README.md](docs/riscv/README.md) for complete setup guide
+- **🎨 UI Documentation**: See [docs/ui/](docs/ui/) for interface guides
+- **📚 General Guides**: See [docs/guides/](docs/guides/) for tutorials
+
 ### Installation Options
 
 Choose the installation that best fits your needs:
@@ -245,6 +251,11 @@ Meetingassistant/
 │   └── start_demo.sh            # Quick start script
 │
 ├── docs/                 # Documentation
+│   ├── riscv/            # RISC-V setup guides
+│   │   ├── README.md     # Complete RISC-V guide
+│   │   ├── scripts/      # Installation scripts
+│   │   └── archive/      # Old scripts
+│   ├── ui/               # UI documentation
 │   ├── guides/           # User guides
 │   ├── reviews/          # Technical reviews
 │   └── design/           # Design documentation
@@ -277,61 +288,30 @@ Meetingassistant/
 
 ### RISC-V and NPU Integration
 
-#### Using EIC7700 NPU
+#### Using EIC7700/EIC7700X NPU
 
-To enable NPU acceleration on ESWIN EIC7700:
+For complete RISC-V setup including NPU integration, see **[docs/riscv/README.md](docs/riscv/README.md)**
 
-1. **Install ENNP SDK**
-   ```bash
-   # Download from ESWIN Computing website
-   # https://www.eswincomputing.com
+Quick start on RISC-V:
+```bash
+# Expand storage (if needed)
+sudo bash RISCV_EXPAND_EMMC.sh
 
-   # Install SDK following vendor instructions
-   sudo dpkg -i ennp-sdk_*.deb
-   ```
+# Complete setup (whisper.cpp + ESWIN NPU)
+bash RISCV_COMPLETE_SETUP.sh
 
-2. **Install ONNX Runtime with ENNP EP**
-   ```bash
-   # ONNX Runtime with ENNP Execution Provider
-   pip install onnxruntime
-   ```
+# Start application
+source venv/bin/activate
+python3 web_app.py
+```
 
-3. **Convert Models to ONNX Format**
-   ```bash
-   # Whisper model conversion (example)
-   python scripts/convert_whisper_to_onnx.py --model base
+**Key features on RISC-V:**
+- ✅ Whisper.cpp for STT (no PyTorch needed)
+- ✅ ESWIN NPU for Qwen2 summarization
+- ✅ Optimized package versions (no Rust required)
+- ✅ One-command installation
 
-   # Qwen model conversion (example)
-   python scripts/convert_qwen_to_onnx.py --model Qwen/Qwen2.5-3B-Instruct
-   ```
-
-4. **Enable NPU in Configuration**
-   Edit `config.yaml`:
-   ```yaml
-   hardware:
-     prefer_npu: true
-     npu_settings:
-       eic7700:
-         enabled: true
-         use_ennp_ep: true
-   ```
-
-#### ENNP SDK Tools
-
-The ENNP SDK provides offline model optimization tools:
-
-- **EsQuant**: INT8/INT16 quantization for optimal NPU performance
-- **EsAAC**: Model compilation and optimization for EIC7700
-- **EsSimulator**: Validation and accuracy testing
-- **EsGoldenDataGen**: Reference data generation for testing
-
-#### Supported Frameworks
-
-EIC7700 NPU supports models from:
-- PyTorch (via ONNX export)
-- TensorFlow (via ONNX conversion)
-- PaddlePaddle
-- ONNX (direct support)
+See [docs/riscv/HARDWARE_STACK.md](docs/riscv/HARDWARE_STACK.md) for NPU technical details.
 
 ### Custom NPU Integration
 
