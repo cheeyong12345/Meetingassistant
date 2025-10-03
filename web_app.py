@@ -22,6 +22,7 @@ try:
 
     from src.meeting import MeetingAssistant
     from src.config import config
+    from src.utils.logger import get_logger
 
     DEPENDENCIES_AVAILABLE = True
 
@@ -31,6 +32,9 @@ except ImportError as e:
     print("   python3 install_sbc.py         # Full installation")
     print("   python3 install_lightweight.py # Minimal installation")
     sys.exit(1)
+
+# Initialize logger
+logger = get_logger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(title="Meeting Assistant", version="1.0.0")
@@ -113,29 +117,26 @@ async def get_status():
 async def get_audio_devices():
     """Get available audio input devices"""
     try:
-        import pyaudio
-        p = pyaudio.PyAudio()
-        devices = []
+        if not meeting_assistant:
+            return {
+                "success": False,
+                "error": "Meeting assistant not initialized",
+                "devices": []
+            }
+
+        # Use the audio recorder's list_input_devices method
+        devices = meeting_assistant.audio_recorder.list_input_devices()
         current_device = None
 
-        for i in range(p.get_device_count()):
-            info = p.get_device_info_by_index(i)
-            if info['maxInputChannels'] > 0:
-                devices.append({
-                    'index': i,
-                    'name': info['name'],
-                    'channels': info['maxInputChannels'],
-                    'sample_rate': int(info['defaultSampleRate'])
-                })
-
         # Get current device from config
-        if meeting_assistant and hasattr(meeting_assistant, 'audio_recorder'):
+        if hasattr(meeting_assistant.audio_recorder, 'device_index'):
             device_index = meeting_assistant.audio_recorder.device_index
-            if device_index is not None:
-                device_info = p.get_device_info_by_index(device_index)
-                current_device = device_info['name']
-
-        p.terminate()
+            if device_index is not None and meeting_assistant.audio_recorder.audio:
+                try:
+                    device_info = meeting_assistant.audio_recorder.audio.get_device_info_by_index(device_index)
+                    current_device = device_info['name']
+                except Exception as e:
+                    logger.warning(f"Could not get current device name: {e}")
 
         return {
             "success": True,
