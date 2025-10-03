@@ -54,6 +54,24 @@ else
     echo "✅ Storage section already exists"
 fi
 
+# Add processing section if missing
+if ! grep -q "^processing:" config.yaml; then
+    echo "→ Adding missing processing section to config.yaml..."
+    cat >> config.yaml << 'EOF'
+
+# Processing settings
+processing:
+  real_time_stt: true
+  auto_summarize: true
+  speaker_detection: false
+  chunk_duration: 30
+  max_meeting_duration: 14400
+EOF
+    echo "✅ Processing section added"
+else
+    echo "✅ Processing section already exists"
+fi
+
 # Create directories
 echo ""
 echo "→ Creating required directories..."
