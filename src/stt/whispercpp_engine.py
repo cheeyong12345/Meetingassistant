@@ -29,12 +29,40 @@ class WhisperCppEngine(STTEngine):
 
         # Whisper.cpp paths
         self.whisper_cpp_dir = Path.home() / "whisper.cpp"
-        self.binary_path = self.whisper_cpp_dir / "main"
+
+        # Find binary (support both old Makefile and new CMake builds)
+        self.binary_path = self._find_binary()
         self.model_path = self.whisper_cpp_dir / f"models/ggml-{self.model_size}.bin"
 
         # Additional options
         self.threads = config.get('threads', 4)
         self.translate = config.get('translate', False)
+
+    def _find_binary(self) -> Path:
+        """
+        Find whisper.cpp binary location.
+
+        Supports both old Makefile builds (main) and new CMake builds (build/bin/main).
+
+        Returns:
+            Path to the binary
+        """
+        # Possible binary locations (in priority order)
+        possible_paths = [
+            self.whisper_cpp_dir / "main",                    # Old Makefile or symlink
+            self.whisper_cpp_dir / "build" / "bin" / "main",  # New CMake build
+            self.whisper_cpp_dir / "build" / "bin" / "whisper-cli",  # Alternative CMake name
+            self.whisper_cpp_dir / "build" / "main",          # Alternative CMake location
+            self.whisper_cpp_dir / "whisper-cli",             # Alternative name
+        ]
+
+        for path in possible_paths:
+            if path.exists():
+                logger.debug(f"Found whisper.cpp binary at: {path}")
+                return path
+
+        # Return default if none found (will fail in initialize())
+        return self.whisper_cpp_dir / "main"
 
     def initialize(self) -> bool:
         """Initialize Whisper.cpp engine"""
@@ -48,7 +76,11 @@ class WhisperCppEngine(STTEngine):
                 return False
 
             if not self.binary_path.exists():
-                logger.error(f"Whisper.cpp binary not found at {self.binary_path}")
+                logger.error(
+                    f"Whisper.cpp binary not found at {self.binary_path}\n"
+                    f"Build it with: cd ~/whisper.cpp && cmake -B build && cmake --build build\n"
+                    f"Or run: bash ~/Meetingassistant/RISCV_FIX_WHISPER_PATH.sh"
+                )
                 return False
 
             if not self.model_path.exists():
