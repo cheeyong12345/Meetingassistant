@@ -58,19 +58,30 @@ echo "📦 Installing packages compatible with RISC-V..."
 echo ""
 
 # Critical packages first
-install_pkg "'pydantic<2.0'" "Pydantic v1 (no Rust required)"
+install_pkg "\"pydantic<2.0\"" "Pydantic v1 (no Rust required)"
 install_pkg "uvicorn" "Uvicorn (ASGI server)"
 install_pkg "jinja2" "Jinja2 (templating)"
 install_pkg "python-multipart" "Python Multipart"
 install_pkg "python-socketio" "Python SocketIO"
-install_pkg "'fastapi[all]'" "FastAPI with all extras"
-install_pkg "transformers" "Hugging Face Transformers"
+install_pkg "fastapi" "FastAPI (without all extras to avoid Rust deps)"
 install_pkg "click" "Click (CLI framework)"
 install_pkg "rich" "Rich (terminal formatting)"
 
-# Optional packages
-install_pkg "tokenizers" "Tokenizers (may need compilation)" "yes"
-install_pkg "accelerate" "Accelerate (Hugging Face)" "yes"
+# Transformers without tokenizers (to avoid Rust)
+echo "→ Installing Transformers (without tokenizers to avoid Rust)..."
+echo "====== Installing transformers (no-deps) @ $(date) ======" >> "$LOG_FILE"
+if pip install --no-cache-dir --no-deps transformers >> "$LOG_FILE" 2>&1; then
+    # Now install only the dependencies that don't need Rust
+    pip install --no-cache-dir filelock huggingface-hub packaging regex requests tqdm >> "$LOG_FILE" 2>&1
+    echo "   ✅ Transformers installed (using slow Python tokenizers)"
+    SUCCESS_PACKAGES+=("Transformers (no Rust tokenizers)")
+else
+    echo "   ❌ Transformers FAILED - see log for details"
+    FAILED_PACKAGES+=("Transformers")
+    echo "====== FAILED ======" >> "$LOG_FILE"
+fi
+
+# Optional packages (skip Rust-dependent ones)
 install_pkg "sentencepiece" "SentencePiece (tokenization)" "yes"
 install_pkg "protobuf" "Protocol Buffers" "yes"
 
@@ -81,7 +92,20 @@ install_pkg "aiofiles" "AIOFiles"
 install_pkg "sqlalchemy" "SQLAlchemy"
 install_pkg "python-dotenv" "Python Dotenv"
 
-# Audio libraries (optional)
+# Audio libraries (optional, need libffi-dev)
+echo ""
+echo "→ Checking for libffi-dev (needed for audio libraries)..."
+if ! dpkg -l | grep -q libffi-dev; then
+    echo "   Installing libffi-dev..."
+    if sudo apt install -y libffi-dev >> "$LOG_FILE" 2>&1; then
+        echo "   ✅ libffi-dev installed"
+    else
+        echo "   ⚠️  libffi-dev install failed (may need sudo)"
+    fi
+else
+    echo "   ✅ libffi-dev already installed"
+fi
+
 install_pkg "pydub" "Pydub (audio processing)" "yes"
 install_pkg "soundfile" "SoundFile (audio I/O)" "yes"
 

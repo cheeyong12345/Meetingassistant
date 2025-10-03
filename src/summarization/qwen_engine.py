@@ -6,6 +6,7 @@ import logging
 from src.summarization.base import SummarizationEngine
 from src.utils.hardware import get_hardware_detector
 from src.utils.npu_acceleration import get_npu_accelerator, is_npu_model_available
+from src.utils.eswin_npu import ESWINNPUInterface
 
 logger = logging.getLogger(__name__)
 
@@ -24,16 +25,37 @@ class QwenEngine(SummarizationEngine):
         self.use_npu = config.get('use_npu', True)
         self.hardware = get_hardware_detector()
         self.npu_accelerator = None
+        self.eswin_npu = None  # ESWIN NPU binary interface
         self.using_npu = False
+        self.using_eswin_npu = False  # Flag for ESWIN NPU binary
 
     def initialize(self) -> bool:
         """Initialize Qwen model with NPU acceleration if available"""
         try:
-            # Auto-detect device
+            # Priority 1: Try ESWIN NPU binary (best performance for Qwen2 7B)
+            if self.use_npu and ESWINNPUInterface.is_available():
+                logger.info("ESWIN NPU binary detected - using hardware-optimized Qwen2 7B")
+                try:
+                    self.eswin_npu = ESWINNPUInterface()
+                    if self.eswin_npu.start():
+                        self.using_eswin_npu = True
+                        self.is_initialized = True
+                        print("✅ Qwen2 7B running on ESWIN NPU (hardware binary)")
+                        print("   Model: INT8 quantized, 1024 token context")
+                        print("   Performance: ~20-50 tokens/second")
+                        return True
+                    else:
+                        logger.warning("ESWIN NPU binary failed to start, trying alternatives...")
+                        self.eswin_npu = None
+                except Exception as e:
+                    logger.warning(f"ESWIN NPU initialization failed: {e}, trying alternatives...")
+                    self.eswin_npu = None
+
+            # Priority 2: Auto-detect device for standard inference
             if self.device == 'auto':
                 self.device = self.hardware.get_optimal_device()
 
-            # Try to initialize NPU acceleration first
+            # Priority 3: Try ONNX Runtime with NPU acceleration
             if self.use_npu and self.hardware.supports_npu_acceleration():
                 npu_info = self.hardware.get_npu_info()
                 logger.info(f"NPU detected: {npu_info['description']}")
