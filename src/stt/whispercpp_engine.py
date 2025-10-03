@@ -43,17 +43,19 @@ class WhisperCppEngine(STTEngine):
         Find whisper.cpp binary location.
 
         Supports both old Makefile builds (main) and new CMake builds (build/bin/main).
+        Prefers whisper-cli over deprecated main binary.
 
         Returns:
             Path to the binary
         """
         # Possible binary locations (in priority order)
+        # Prefer whisper-cli over deprecated main binary
         possible_paths = [
-            self.whisper_cpp_dir / "main",                    # Old Makefile or symlink
-            self.whisper_cpp_dir / "build" / "bin" / "main",  # New CMake build
-            self.whisper_cpp_dir / "build" / "bin" / "whisper-cli",  # Alternative CMake name
-            self.whisper_cpp_dir / "build" / "main",          # Alternative CMake location
-            self.whisper_cpp_dir / "whisper-cli",             # Alternative name
+            self.whisper_cpp_dir / "build" / "bin" / "whisper-cli",  # Preferred: New CMake whisper-cli
+            self.whisper_cpp_dir / "whisper-cli",             # Alternative whisper-cli location
+            self.whisper_cpp_dir / "main",                    # Deprecated: Old Makefile or symlink
+            self.whisper_cpp_dir / "build" / "bin" / "main",  # Deprecated: New CMake build
+            self.whisper_cpp_dir / "build" / "main",          # Deprecated: Alternative CMake location
         ]
 
         for path in possible_paths:
@@ -87,7 +89,9 @@ class WhisperCppEngine(STTEngine):
                 logger.error(f"Whisper model not found at {self.model_path}")
                 return False
 
-            # Test binary
+            # Test binary - check if it's executable and can run
+            # Note: The deprecated 'main' binary may return non-zero exit codes
+            # even when working, due to deprecation warnings
             result = subprocess.run(
                 [str(self.binary_path), "-h"],
                 capture_output=True,
@@ -95,9 +99,25 @@ class WhisperCppEngine(STTEngine):
                 timeout=5
             )
 
-            if result.returncode != 0:
-                logger.error("Whisper.cpp binary test failed")
+            # Check if binary is working by looking for expected output or acceptable warnings
+            # Accept both successful runs (returncode 0) and deprecation warnings
+            is_deprecated = "deprecated" in result.stderr.lower() or "deprecated" in result.stdout.lower()
+            has_help_output = len(result.stdout) > 0 or len(result.stderr) > 0
+
+            if result.returncode != 0 and not is_deprecated:
+                # Binary failed and it's not just a deprecation warning
+                logger.error(f"Whisper.cpp binary test failed: {result.stderr}")
                 return False
+
+            if not has_help_output:
+                # Binary produced no output at all - likely broken
+                logger.error("Whisper.cpp binary test failed: no output")
+                return False
+
+            # Log deprecation warning if present
+            if is_deprecated:
+                logger.warning(f"Using deprecated Whisper.cpp binary at {self.binary_path}")
+                logger.warning("Consider using 'whisper-cli' instead of 'main' binary")
 
             self.is_initialized = True
             logger.info(f"Whisper.cpp initialized successfully (model: {self.model_size})")
