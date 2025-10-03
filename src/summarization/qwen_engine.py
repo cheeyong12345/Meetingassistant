@@ -1,12 +1,16 @@
-import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from typing import Dict, Any, List, Optional
 import re
+import logging
 
 from src.summarization.base import SummarizationEngine
+from src.utils.hardware import get_hardware_detector
+from src.utils.npu_acceleration import get_npu_accelerator, is_npu_model_available
+
+logger = logging.getLogger(__name__)
 
 class QwenEngine(SummarizationEngine):
-    """Qwen3 local summarization engine"""
+    """Qwen3 local summarization engine with NPU acceleration support"""
 
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
@@ -17,49 +21,98 @@ class QwenEngine(SummarizationEngine):
         self.device = config.get('device', 'auto')
         self.max_tokens = config.get('max_tokens', 1000)
         self.temperature = config.get('temperature', 0.7)
+        self.use_npu = config.get('use_npu', True)
+        self.hardware = get_hardware_detector()
+        self.npu_accelerator = None
+        self.using_npu = False
 
     def initialize(self) -> bool:
-        """Initialize Qwen model"""
+        """Initialize Qwen model with NPU acceleration if available"""
         try:
             # Auto-detect device
             if self.device == 'auto':
-                if torch.cuda.is_available():
-                    self.device = 'cuda'
-                elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
-                    self.device = 'mps'
+                self.device = self.hardware.get_optimal_device()
+
+            # Try to initialize NPU acceleration first
+            if self.use_npu and self.hardware.supports_npu_acceleration():
+                npu_info = self.hardware.get_npu_info()
+                logger.info(f"NPU detected: {npu_info['description']}")
+
+                # For large language models, ONNX Runtime with ENNP EP is preferred
+                logger.info("Note: LLM NPU acceleration uses ONNX Runtime with ENNP Execution Provider")
+
+                # Check if NPU-optimized model is available
+                model_short_name = self.model_name.split('/')[-1].lower().replace('-', '_')
+                model_path = f"./models/{npu_info['type']}/{model_short_name}"
+
+                if is_npu_model_available(model_path, npu_info['type']):
+                    logger.info("Loading NPU-optimized Qwen model...")
+                    self.npu_accelerator = get_npu_accelerator(npu_info['type'])
+
+                    if self.npu_accelerator:
+                        npu_model_path = f"{model_path}.onnx"  # ONNX format for LLMs
+
+                        if self.npu_accelerator.load_model(npu_model_path, use_ennp=True):
+                            self.using_npu = True
+                            logger.info("Qwen model loaded on NPU successfully")
+                            print(f"✅ Qwen running on {npu_info['description']}")
+
+                            # Still need tokenizer
+                            self.tokenizer = AutoTokenizer.from_pretrained(
+                                self.model_name,
+                                trust_remote_code=True
+                            )
+                            self.is_initialized = True
+                            return True
+                        else:
+                            logger.warning("Failed to load NPU model, falling back to PyTorch")
                 else:
-                    self.device = 'cpu'
+                    logger.info(f"NPU model not found at {model_path}")
+                    logger.info(f"Note: Convert model using: python scripts/convert_models_npu.py --model qwen --size {self.model_name}")
 
-            print(f"Loading Qwen model '{self.model_name}' on device '{self.device}'...")
+            # Fallback to standard PyTorch model
+            try:
+                import torch
 
-            # Load tokenizer and model
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                self.model_name,
-                trust_remote_code=True
-            )
+                logger.info(f"Loading Qwen model '{self.model_name}' on device '{self.device}'...")
 
-            self.model = AutoModelForCausalLM.from_pretrained(
-                self.model_name,
-                torch_dtype=torch.float16 if self.device != 'cpu' else torch.float32,
-                device_map=self.device if self.device != 'cpu' else None,
-                trust_remote_code=True
-            )
+                # Load tokenizer and model
+                self.tokenizer = AutoTokenizer.from_pretrained(
+                    self.model_name,
+                    trust_remote_code=True
+                )
 
-            # Create text generation pipeline
-            self.pipeline = pipeline(
-                "text-generation",
-                model=self.model,
-                tokenizer=self.tokenizer,
-                torch_dtype=torch.float16 if self.device != 'cpu' else torch.float32,
-                device_map=self.device if self.device != 'cpu' else None
-            )
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    self.model_name,
+                    torch_dtype=torch.float16 if self.device != 'cpu' else torch.float32,
+                    device_map=self.device if self.device != 'cpu' else None,
+                    trust_remote_code=True
+                )
 
-            self.is_initialized = True
-            print("Qwen model loaded successfully")
-            return True
+                # Create text generation pipeline
+                self.pipeline = pipeline(
+                    "text-generation",
+                    model=self.model,
+                    tokenizer=self.tokenizer,
+                    torch_dtype=torch.float16 if self.device != 'cpu' else torch.float32,
+                    device_map=self.device if self.device != 'cpu' else None
+                )
+
+                self.is_initialized = True
+
+                # Display hardware info
+                system_info = self.hardware.get_system_info()
+                print(f"Qwen model loaded successfully on {system_info['architecture']} ({system_info['soc_type']})")
+
+                return True
+
+            except ImportError:
+                logger.error("PyTorch not available and no NPU model found")
+                logger.info("Either install PyTorch or use ONNX Runtime with converted model")
+                return False
 
         except Exception as e:
-            print(f"Failed to initialize Qwen: {e}")
+            logger.error(f"Failed to initialize Qwen: {e}")
             return False
 
     def _generate_response(self, prompt: str, max_tokens: Optional[int] = None) -> str:
@@ -232,6 +285,10 @@ Key Points:"""
 
     def cleanup(self):
         """Clean up model resources"""
+        if self.npu_accelerator is not None:
+            self.npu_accelerator.cleanup()
+            self.npu_accelerator = None
+
         if self.pipeline is not None:
             del self.pipeline
         if self.model is not None:
@@ -239,10 +296,15 @@ Key Points:"""
         if self.tokenizer is not None:
             del self.tokenizer
 
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
+        try:
+            import torch
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except ImportError:
+            pass
 
         self.pipeline = None
         self.model = None
         self.tokenizer = None
+        self.using_npu = False
         self.is_initialized = False

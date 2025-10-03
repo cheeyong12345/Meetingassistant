@@ -1,14 +1,18 @@
 import whisper
 import numpy as np
-import torch
 from typing import Dict, Any, Optional, Union
 import warnings
+import logging
 warnings.filterwarnings("ignore")
 
 from src.stt.base import STTEngine
+from src.utils.hardware import get_hardware_detector
+from src.utils.npu_acceleration import get_npu_accelerator, is_npu_model_available
+
+logger = logging.getLogger(__name__)
 
 class WhisperEngine(STTEngine):
-    """OpenAI Whisper STT Engine"""
+    """OpenAI Whisper STT Engine with NPU acceleration support"""
 
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
@@ -16,27 +20,66 @@ class WhisperEngine(STTEngine):
         self.model_size = config.get('model_size', 'base')
         self.language = config.get('language', 'auto')
         self.device = config.get('device', 'auto')
+        self.use_npu = config.get('use_npu', True)
+        self.hardware = get_hardware_detector()
+        self.npu_accelerator = None
+        self.using_npu = False
 
     def initialize(self) -> bool:
-        """Initialize Whisper model"""
+        """Initialize Whisper model with NPU acceleration if available"""
         try:
             # Auto-detect device
             if self.device == 'auto':
-                if torch.cuda.is_available():
-                    self.device = 'cuda'
-                elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
-                    self.device = 'mps'
-                else:
-                    self.device = 'cpu'
+                self.device = self.hardware.get_optimal_device()
 
-            print(f"Loading Whisper model '{self.model_size}' on device '{self.device}'...")
-            self.model = whisper.load_model(self.model_size, device=self.device)
-            self.is_initialized = True
-            print(f"Whisper model loaded successfully")
-            return True
+            # Try to initialize NPU acceleration first
+            if self.use_npu and self.hardware.supports_npu_acceleration():
+                npu_info = self.hardware.get_npu_info()
+                logger.info(f"NPU detected: {npu_info['description']}")
+
+                # Check if NPU-optimized model is available
+                model_path = f"./models/{npu_info['type']}/whisper_{self.model_size}"
+                if is_npu_model_available(model_path, npu_info['type']):
+                    logger.info("Loading NPU-optimized Whisper model...")
+                    self.npu_accelerator = get_npu_accelerator(npu_info['type'])
+
+                    if self.npu_accelerator:
+                        # Load NPU model
+                        npu_model_ext = ".rknn" if npu_info['type'] == "rk3588" else ".onnx"
+                        npu_model_path = f"{model_path}{npu_model_ext}"
+
+                        if self.npu_accelerator.load_model(npu_model_path):
+                            self.using_npu = True
+                            logger.info("Whisper model loaded on NPU successfully")
+                            print(f"✅ Whisper running on {npu_info['description']}")
+                            self.is_initialized = True
+                            return True
+                        else:
+                            logger.warning("Failed to load NPU model, falling back to CPU/GPU")
+                else:
+                    logger.info(f"NPU model not found at {model_path}")
+                    logger.info(f"Convert model using: python scripts/convert_models_npu.py --model whisper --size {self.model_size}")
+
+            # Fallback to standard PyTorch model
+            try:
+                import torch
+                logger.info(f"Loading Whisper model '{self.model_size}' on device '{self.device}'...")
+                self.model = whisper.load_model(self.model_size, device=self.device)
+                self.is_initialized = True
+
+                # Display hardware info
+                system_info = self.hardware.get_system_info()
+                print(f"Whisper model loaded successfully on {system_info['architecture']} ({system_info['soc_type']})")
+
+                return True
+
+            except ImportError:
+                logger.error("PyTorch not available and no NPU model found")
+                logger.info("Either install PyTorch or convert model for NPU")
+                return False
 
         except Exception as e:
-            print(f"Failed to initialize Whisper: {e}")
+            logger.error(f"Failed to initialize Whisper: {e}")
             return False
 
     def transcribe(self, audio_data: Union[str, np.ndarray]) -> Dict[str, Any]:
@@ -140,9 +183,19 @@ class WhisperEngine(STTEngine):
 
     def cleanup(self):
         """Clean up model resources"""
+        if self.npu_accelerator is not None:
+            self.npu_accelerator.cleanup()
+            self.npu_accelerator = None
+
         if self.model is not None:
             del self.model
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+            except ImportError:
+                pass
+
         self.model = None
+        self.using_npu = False
         self.is_initialized = False

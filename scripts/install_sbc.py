@@ -60,9 +60,11 @@ def detect_system() -> Tuple[str, str, str]:
     print_status(f"Architecture: {arch}")
     print_status(f"OS: {os_name}")
 
-    # Check if it's ARM64
-    if arch not in ["aarch64", "arm64"]:
-        print_warning("This script is optimized for ARM64 SBCs, but will try to continue")
+    # Check architecture type
+    if arch in ["riscv64", "riscv"]:
+        print_status("RISC-V architecture detected - ONNX Runtime will be used for inference")
+    elif arch not in ["aarch64", "arm64"]:
+        print_warning("This script is optimized for ARM64/RISC-V SBCs, but will try to continue")
 
     sbc_type = "generic"
 
@@ -76,15 +78,28 @@ def detect_system() -> Tuple[str, str, str]:
 
             if "RK3588" in model or "rk3588" in model:
                 sbc_type = "rk3588"
-                print_status("Detected RK3588 SBC")
+                print_status("Detected RK3588 SBC with NPU support")
+            elif "EIC7700" in model or "eic7700" in model or "Eswin" in model or "eswin" in model:
+                sbc_type = "eic7700"
+                print_status("Detected ESWIN EIC7700 RISC-V SoC with NPU support")
             elif "Raspberry Pi" in model:
                 sbc_type = "rpi"
                 print_status("Detected Raspberry Pi")
             else:
                 sbc_type = "generic"
-                print_status("Generic ARM64 SBC detected")
+                print_status("Generic SBC detected")
         except Exception:
             sbc_type = "generic"
+
+    # Additional RISC-V detection
+    if arch in ["riscv64", "riscv"]:
+        print_status("RISC-V architecture detected")
+        # Check for EIC7700 specific files
+        if Path("/usr/lib/libennp.so").exists() or Path("/opt/eswin").exists():
+            sbc_type = "eic7700"
+            print_status("Detected EIC7700 RISC-V SoC with ENNP NPU support")
+        elif sbc_type == "generic":
+            sbc_type = "riscv_generic"
 
     return arch, os_name, sbc_type
 
@@ -148,6 +163,15 @@ def install_system_packages(sbc_type: str) -> bool:
             "rockchip-mpp-dev", "librockchip-mpp1", "librga-dev"
         ])
         print_status("Adding RK3588-specific packages")
+
+    # EIC7700 specific packages
+    elif sbc_type == "eic7700":
+        print_status("Adding EIC7700/RISC-V-specific packages")
+        # RISC-V toolchain and libraries
+        packages.extend([
+            "gcc-riscv64-linux-gnu", "g++-riscv64-linux-gnu"
+        ])
+        # Note: ENNP SDK should be installed separately from vendor
 
     print_status(f"Installing packages: {', '.join(packages)}")
     run_command(["sudo", "apt", "update"])
@@ -216,32 +240,175 @@ def setup_python_env() -> bool:
 
     return True
 
-def install_pytorch() -> bool:
-    """Install PyTorch for ARM64"""
+def install_pytorch(arch: str = "aarch64", sbc_type: str = "generic") -> bool:
+    """Install PyTorch for ARM64/RISC-V"""
     print_header("Installing PyTorch")
 
     pip_path = Path("venv/bin/pip")
-    print_status("Installing PyTorch for ARM64")
+    python_path = Path("venv/bin/python3")
 
-    # Install PyTorch CPU version (most compatible for ARM64)
-    run_command([
-        str(pip_path), "install", "torch", "torchvision", "torchaudio",
-        "--index-url", "https://download.pytorch.org/whl/cpu"
-    ])
+    if arch in ["riscv64", "riscv"]:
+        print_status("Detected RISC-V architecture")
+        print_warning("PyTorch does not have official pre-built wheels for RISC-V yet")
+        print()
+        print("Options for RISC-V PyTorch installation:")
+        print("  1. Build PyTorch from source (takes 6-12 hours, requires 8GB+ RAM)")
+        print("  2. Use ONNX Runtime for inference (recommended, faster)")
+        print("  3. Skip PyTorch (will use ONNX Runtime only)")
+        print()
+
+        choice = input("Choose option [1-3] (default: 2): ").strip()
+        if not choice:
+            choice = "2"
+
+        if choice == "1":
+            print_status("Building PyTorch from source for RISC-V...")
+            print_warning("This will take several hours. Consider using screen/tmux.")
+            confirm = input("Continue with build from source? (y/N): ").strip().lower()
+
+            if confirm in ['y', 'yes']:
+                try:
+                    # Install build dependencies
+                    print_status("Installing build dependencies...")
+                    build_deps = [
+                        "cmake", "ninja-build", "ccache",
+                        "libopenblas-dev", "libblas-dev", "m4",
+                        "python3-dev", "python3-yaml", "python3-setuptools"
+                    ]
+                    run_command(["sudo", "apt", "install", "-y"] + build_deps)
+
+                    # Install Python build dependencies
+                    run_command([str(pip_path), "install", "pyyaml", "numpy", "setuptools", "cffi", "typing_extensions"])
+
+                    # Clone PyTorch
+                    print_status("Cloning PyTorch repository...")
+                    pytorch_dir = Path("/tmp/pytorch")
+                    if pytorch_dir.exists():
+                        shutil.rmtree(pytorch_dir)
+
+                    run_command(["git", "clone", "--recursive", "--branch", "v2.1.0",
+                               "https://github.com/pytorch/pytorch", str(pytorch_dir)])
+
+                    # Build PyTorch
+                    print_status("Building PyTorch (this will take 6-12 hours)...")
+                    os.chdir(pytorch_dir)
+
+                    # Set environment variables for RISC-V build
+                    env = os.environ.copy()
+                    env["USE_CUDA"] = "0"
+                    env["USE_CUDNN"] = "0"
+                    env["USE_MKLDNN"] = "0"
+                    env["USE_NNPACK"] = "0"
+                    env["USE_QNNPACK"] = "0"
+                    env["BUILD_TEST"] = "0"
+                    env["MAX_JOBS"] = str(os.cpu_count() or 4)
+
+                    subprocess.run([str(python_path), "setup.py", "install"], env=env, check=True)
+
+                    # Return to original directory
+                    os.chdir(Path(__file__).parent.absolute())
+
+                    print_status("PyTorch built and installed successfully")
+
+                except Exception as e:
+                    print_error(f"Failed to build PyTorch from source: {e}")
+                    print_warning("Falling back to ONNX Runtime only")
+                    return install_onnxruntime_riscv(pip_path, python_path)
+            else:
+                print_status("Skipping PyTorch build, using ONNX Runtime")
+                return install_onnxruntime_riscv(pip_path, python_path)
+
+        elif choice == "2":
+            print_status("Using ONNX Runtime for RISC-V inference")
+            return install_onnxruntime_riscv(pip_path, python_path)
+
+        else:  # choice == "3"
+            print_status("Skipping PyTorch installation")
+            print_warning("Some features may be limited without PyTorch")
+            return install_onnxruntime_riscv(pip_path, python_path)
+
+    else:
+        print_status("Installing PyTorch for ARM64")
+        # Install PyTorch CPU version (most compatible for ARM64)
+        try:
+            run_command([
+                str(pip_path), "install", "torch", "torchvision", "torchaudio",
+                "--index-url", "https://download.pytorch.org/whl/cpu"
+            ])
+        except Exception as e:
+            print_error(f"PyTorch installation failed: {e}")
+            print_warning("Trying alternative installation method...")
+            try:
+                # Try without index URL
+                run_command([str(pip_path), "install", "torch", "torchvision", "torchaudio"])
+            except Exception as e2:
+                print_error(f"Alternative installation also failed: {e2}")
+                return False
 
     # Verify installation
-    python_path = Path("venv/bin/python3")
     verify_result = run_command([
         str(python_path), "-c",
         "import torch; print(f'PyTorch version: {torch.__version__}')"
     ], check=False)
 
     if verify_result.returncode != 0:
-        print_error("PyTorch installation failed")
+        print_warning("PyTorch installation verification failed")
+        if arch in ["riscv64", "riscv"]:
+            print_status("This is expected for RISC-V, ONNX Runtime will be used instead")
+            return True
         return False
 
     print(verify_result.stdout)
     return True
+
+
+def install_onnxruntime_riscv(pip_path: Path, python_path: Path) -> bool:
+    """Install ONNX Runtime for RISC-V as PyTorch alternative"""
+    print_header("Installing ONNX Runtime for RISC-V")
+
+    try:
+        # Try to install ONNX Runtime
+        print_status("Installing ONNX Runtime...")
+        result = run_command([str(pip_path), "install", "onnxruntime"], check=False)
+
+        if result.returncode != 0:
+            print_warning("Pre-built ONNX Runtime not available for RISC-V")
+            print_status("Attempting to build ONNX Runtime from source...")
+
+            # Install build dependencies
+            build_deps = ["cmake", "ninja-build", "protobuf-compiler", "libprotobuf-dev"]
+            run_command(["sudo", "apt", "install", "-y"] + build_deps)
+
+            # Install Python dependencies
+            run_command([str(pip_path), "install", "numpy", "packaging", "protobuf"])
+
+            # For now, we'll use a lightweight alternative
+            print_warning("ONNX Runtime build from source requires significant time")
+            print_status("Installing lightweight alternatives...")
+
+            # Install basic numpy and scipy for computations
+            run_command([str(pip_path), "install", "numpy", "scipy"])
+
+            print_warning("Models will need to be converted to ONNX format for inference")
+            print_status("ONNX Runtime can be installed later with: pip install onnxruntime")
+        else:
+            print_status("ONNX Runtime installed successfully")
+
+            # Verify
+            verify_result = run_command([
+                str(python_path), "-c",
+                "import onnxruntime; print(f'ONNX Runtime version: {onnxruntime.__version__}')"
+            ], check=False)
+
+            if verify_result.returncode == 0:
+                print(verify_result.stdout)
+
+        return True
+
+    except Exception as e:
+        print_error(f"ONNX Runtime installation failed: {e}")
+        print_warning("Continuing with limited inference capabilities")
+        return True  # Don't fail the whole installation
 
 def install_python_deps() -> bool:
     """Install Python dependencies"""
@@ -269,6 +436,12 @@ def install_python_deps() -> bool:
     ollama_result = run_command([str(pip_path), "install", "ollama"], check=False)
     if ollama_result.returncode != 0:
         print_warning("Ollama client installation failed (optional)")
+
+    # Install ONNX Runtime (useful for EIC7700 NPU)
+    print_status("Installing ONNX Runtime")
+    onnx_result = run_command([str(pip_path), "install", "onnxruntime"], check=False)
+    if onnx_result.returncode != 0:
+        print_warning("ONNX Runtime installation failed (optional, but recommended for EIC7700)")
 
     return True
 
@@ -985,8 +1158,23 @@ def main():
             install_system_packages(sbc_type)
             setup_audio()
             setup_python_env()
-            install_pytorch()
+            install_pytorch(arch, sbc_type)
             install_python_deps()
+
+            # Display hardware-specific notes
+            if sbc_type == "eic7700":
+                print_header("EIC7700 RISC-V NPU Setup")
+                print_status("To enable NPU acceleration on EIC7700:")
+                print("  1. Install ENNP SDK from ESWIN Computing")
+                print("  2. Download SDK from: https://www.eswincomputing.com")
+                print("  3. Follow vendor instructions for SDK installation")
+                print("  4. Install ONNX Runtime with ENNP EP support")
+                print()
+                print_status("ENNP SDK provides model conversion tools:")
+                print("  - EsQuant: Model quantization")
+                print("  - EsAAC: Model compilation for EIC7700 NPU")
+                print("  - EsSimulator: Validation and testing")
+                print()
 
         if not args.no_models:
             download_models()

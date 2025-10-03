@@ -25,7 +25,8 @@ stt:
     whisper:
       model_size: "medium"  # tiny, base, small, medium, large
       language: "auto"
-      device: "auto"  # cpu, cuda, mps
+      device: "auto"  # cpu, cuda, mps, or auto-detect
+      use_npu: true  # Enable NPU acceleration if available (RK3588/EIC7700)
     vosk:
       model_path: "models/vosk-model-en-us-0.22"
       language: "en-us"
@@ -39,7 +40,8 @@ summarization:
   engines:
     qwen3:
       model_name: "Qwen/Qwen2.5-3B-Instruct"
-      device: "auto"
+      device: "auto"  # cpu, cuda, mps, or auto-detect
+      use_npu: true  # Enable NPU acceleration if available (RK3588/EIC7700)
       max_tokens: 1000
       temperature: 0.7
     ollama:
@@ -66,3 +68,16 @@ processing:
   speaker_detection: false
   chunk_duration: 30  # seconds
   max_meeting_duration: 14400  # 4 hours in seconds
+
+# Hardware acceleration settings
+hardware:
+  auto_detect: true  # Auto-detect hardware capabilities
+  prefer_npu: true  # Prefer NPU over GPU/CPU when available
+  npu_settings:
+    rk3588:
+      enabled: true
+      model_format: "rknn"  # RKNN format for RK3588
+    eic7700:
+      enabled: true
+      model_format: "onnx"  # ONNX with ENNP EP or native ENNP format
+      use_ennp_ep: true  # Use ENNP Execution Provider with ONNX Runtime
