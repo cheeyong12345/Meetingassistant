@@ -93,7 +93,34 @@ fi
 
 echo ""
 echo "════════════════════════════════════════════════════════════════"
-echo "🧪 Testing Web App"
+echo "📚 Installing Transformers (RISC-V compatible)"
+echo "════════════════════════════════════════════════════════════════"
+echo ""
+
+# Install transformers without Rust dependencies
+echo "→ Installing transformers 4.30.2 (no Rust deps)..."
+if pip3 install --break-system-packages --no-deps "transformers==4.30.2" 2>/dev/null; then
+    echo "✅ Transformers installed"
+else
+    echo "⚠️  Transformers installation had issues, trying alternative..."
+    pip3 install --break-system-packages --no-cache-dir --no-deps "transformers==4.30.2" || echo "⚠️  May already be installed"
+fi
+
+# Install transformers compatible dependencies (no tokenizers/safetensors)
+echo "→ Installing transformers dependencies..."
+for dep in filelock huggingface-hub packaging pyyaml regex requests tqdm; do
+    pip3 install --break-system-packages $dep 2>/dev/null || echo "  ⚠️  $dep may already be installed"
+done
+
+# Install pydantic v1 (v2 requires Rust)
+echo "→ Installing pydantic v1..."
+pip3 install --break-system-packages "pydantic<2.0" 2>/dev/null || echo "  ⚠️  Pydantic may already be installed"
+
+echo "✅ Transformers setup complete"
+
+echo ""
+echo "════════════════════════════════════════════════════════════════"
+echo "🧪 Testing Web App Dependencies"
 echo "════════════════════════════════════════════════════════════════"
 echo ""
 
@@ -131,11 +158,25 @@ except Exception as e:
     print(f"  ❌ pyyaml: {e}")
     errors.append("pyyaml")
 
+try:
+    import transformers
+    print("  ✅ transformers")
+except Exception as e:
+    print(f"  ❌ transformers: {e}")
+    errors.append("transformers")
+
+try:
+    import pydantic
+    print("  ✅ pydantic")
+except Exception as e:
+    print(f"  ❌ pydantic: {e}")
+    errors.append("pydantic")
+
 if errors:
     print(f"\n⚠️  Some imports failed: {', '.join(errors)}")
     print("The app may still work with available packages")
 else:
-    print("\n✅ All web dependencies available!")
+    print("\n✅ All dependencies available!")
 PYTEST
 
 echo ""
